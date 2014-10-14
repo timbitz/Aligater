@@ -1,4 +1,4 @@
 liger
 =====
 
-non-functional &amp; under development.
+under development...
