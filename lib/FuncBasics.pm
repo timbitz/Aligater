@@ -39,6 +39,7 @@ our @ISA = qw(Exporter);
 our %EXPORT_TAGS = ( 'all' => [ qw( 
        max
        min
+       shove
        isInt
        maxOfArray
        minOfArray
@@ -56,6 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( 
        max
        min
+       shove
        isInt
        maxOfArray
        minOfArray
@@ -92,6 +94,20 @@ sub min {
   return($a < $b ? $a : $b ); 
 } 
  
+# will push $val to the end of $aRef
+# whether or not $aRef is defined
+sub shove {
+  my $aRef = shift;
+  my(@val) = @_;
+  if(ref($aRef) eq 'ARRAY') {
+    push(@$aRef, @val);
+  } else {
+    $aRef = [];
+    push(@$aRef, @val);
+  }
+  return($aRef);
+}
+
 sub isInt {
   my $n = shift;
   unless(defined($n)) { return 0; }

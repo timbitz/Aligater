@@ -43,6 +43,7 @@ our @ISA = qw(Exporter);
 our %EXPORT_TAGS = ( 'all' => [ qw( 
 	getSeq
 	revComp
+        gcContent
 	maxRegex
 	shuffleSeq
 ) ] ); 
@@ -52,6 +53,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( 
 	getSeq
 	revComp
+        gcContent
 	maxRegex
 	shuffleSeq
 ); 
@@ -74,6 +76,12 @@ sub revComp {
   my $seq = shift;
   $seq =~ tr/ATGCatgc/TACGtacg/;
   return(scalar reverse($seq));
+}
+
+sub gcContent {
+  my $seq = shift;
+  my $count = () = $seq =~ /[GC]/gi;
+  return $count / length($seq);
 }
 
 sub getSeq {
