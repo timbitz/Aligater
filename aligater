@@ -1,0 +1,82 @@
+#!/usr/bin/env perl
+#
+#  Author: Tim Sterne-Weiler (Oct 2014)
+#  e-mail: tim.sterne.weiler@utoronto.ca
+#
+
+use warnings;
+use strict;
+
+use Cwd qw(abs_path);
+
+# INITIALIZE
+my $path = abs_path($0);
+$0 =~ s/^.*\///;
+$path =~ s/\/$0$//;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use SamBasics qw(:all);
+use FuncBasics qw(openFileHandle sumOfHash);
+
+use Scalar::Util qw(looks_like_number);
+
+use Getopt::Long;
+
+our $EXIT_STATUS = 0;
+
+# basic flag vars
+my $helpFlag = 0;
+my $verboseFlag = 0;
+
+my $alignThreads = 1;
+my $alignProg = "bowtie2";
+my $alignFlags = " --local --reorder -S";
+
+my $logFile = "out.log"; #default log.
+
+my $bamInput = 0; # SAM INPUT = 0
+		  # BAM INPUT = 1
+
+GetOptions("bam" => \$bamInput,
+	   "help" => \$helpFlag,
+	   "verbose" => \$verboseFlag);
+
+my $printUsage = 0;
+
+my $subCommand = shift @ARGV;
+
+if(!defined($subCommand) or
+   !1) {
+  $printUsage = 1;
+}
+
+if($helpFlag or $printUsage) {
+  die "Usage: $0 
+";
+}
+
+sub verbPrint {
+  my $str = shift;
+  chomp $str;
+  if($verboseFlag) {
+    print STDERR "[liger]: $str\n";
+  }
+}
+
+if($subCommand eq "align") {
+  system("bash", "-c", "which $alignProg > /dev/null 2> /dev/null") and
+	die "[liger]: Cannot find $alignProg which is required!\n";
+  system("bash", "-c", "$alignProg $alignFlags 2> $logFile") and 
+	die "[liger]: Alignment failed! Please check the log file ($logFile)!";
+} elsif($subCommand eq "detect") {
+  # pipe to bam reader
+  my $samtoolsCmd = ($bamInput) ? "| samtools view -" : "";  
+  open(DETECT, "$samtoolsCmd | $path/bin/detect.pl");
+    print DETECT <STDIN>;
+  close DETECT;
+}
+
+
+exit $EXIT_STATUS >> 8;
