@@ -26,6 +26,7 @@ use SamBasics qw(:all);
 use FuncBasics qw(isInt shove);
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
+our $HYBRID_PENALTY = -6;
 
 sub explode {
   my $str = shift;
@@ -48,9 +49,10 @@ while(my $l = <>) {
   next if($l =~ /^(#|\@(SQ|HD|RG|PG|CO))/); #header line
   chomp($l);
   my(@a) = split(/\t/, $l); # split sam
-  
+  next unless isMapped($a[1]); # ignore unmapped reads 
   explode "Invalid SAM format!\n" unless(defined($a[0]) and isInt($a[1]));
-  if($a[0] ne $curRead and $a[0] ne "") {
+
+  if($a[0] ne $curRead and $curRead ne "") {
     # before moving to a new read, process current read's alignments
     # from $alnHash
 
@@ -58,6 +60,9 @@ while(my $l = <>) {
     processAlignRec($alnHash, $sHash, $eHash);
 
     #output best alignment here.
+    my(@bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
+    my($output) = join("\t", @{$alnHash->{$bestK[0]}});
+    print "$output\n";
 
     # re-initialize for new read
     $curRead = $a[0];
@@ -66,7 +71,6 @@ while(my $l = <>) {
   }
 
   # process current read.
-  next unless isMapped($a[1]); # ignore unmapped reads 
   explode "Invalid CIGAR format!" unless isCIGAR($a[5]); 
   my($start, $len) = alignPosInRead($a[5]);
   my $end = $start + $len;
@@ -74,14 +78,13 @@ while(my $l = <>) {
   next if($STRAND_SPECIFIC and $strand eq "-");#discard if - strand and strand specific?
   my $optHash = parseOpFields(\@a); 
   my $aScore = $optHash->{"AS"};
-  print "$start\t$len\t$strand\t$aScore\n";
   #my $numMiss = $optHash->{"NM"};   
    
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);
-  if(alignCmp($curAln, $alnHash{ $seHash{"$start\:$end"} }) > 0) {
-    $seHash{"$start\:$end"} = "$curCount";
-  } else next;  # redundant alignment with lower rank
+  if(alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
+    $seHash->{"$start\:$end"} = "$curCount";
+  } else { next; } # redundant alignment with lower rank
 
   # add start and end records.
   $sHash->{$start} = shove($sHash->{$start}, $curCount);
@@ -92,27 +95,62 @@ while(my $l = <>) {
 
   # increment for next read;
   $curCount++;
+  $curRead = $a[0];
 }
 
 # Recursively process/collapse alignments.
 sub processAlignRec {
   my($alnHash, $sHash, $eHash) = @_;
+  my $found = [];
   foreach my $end (sort keys %$eHash) {
-    if(defined($sHash{$end}) { # penalty -5
-      
-    } elsif(defined($sHash{$end - 1}) or # pen -6
-            defined($sHash{$end + 1})) {
-      
+    my $curList = $eHash->{$end};
+    my $findList = [];
+    if(defined($sHash->{$end})) {
+      push(@$findList, @{$sHash->{$end}});
+      push(@$found, $end);
     } 
+    if(defined($sHash->{$end - 1})) {
+      push(@$findList, @{$sHash->{$end - 1}});
+      push(@$found, $end - 1);
+    } 
+    if(defined($sHash->{$end + 1})) {
+      push(@$findList, @{$sHash->{$end + 1}});
+      push(@$found, $end + 1);
+    }
     
+    # now go through and make hybrids
+    foreach my $a (@$curList) {
+      foreach my $b (@$findList) {
+        my($score, $start, $len);
+        explode "$a and $b are not defined in alnHash!" unless 
+		defined($alnHash->{$a}) and defined($alnHash->{$b}); 
+        $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY;
+        $start = $alnHash->{$a}->[1];
+        $len = ($alnHash->{$b}->[1] + $alnHash->{$b}->[2]) - $alnHash->{$a}->[1];
+        # set alnHash value for new hybrid
+        $alnHash->{"$a\:$b"} = [$score, $start, $len, "Hybrid"];
+        $eHash->{$start+$len} = shove($eHash->{$start+$len}, "$a\:$b");
+      }
+    }
+
+  } # end itor
+
+  # now clean up those starts so we don't
+  # pick them up on the next recurse
+  foreach my $start (@$found) {
+    next unless defined($sHash->{$start});
+    delete $sHash->{$start};
   }
+  # end condition if no more hybrids are found.
+  (scalar @$found) ? processAlignRec($alnHash, $sHash, $eHash) : return;
 }
+
 
 # compare two alignments first by alignment score
 # then by symbol and biotypes.
 sub alignCmp {
   my($alignA, $alignB) = @_;
-
+  
   # explode if neither is defined.
   explode "Invalid object $alignA or $alignB!" unless defined($alignA or $alignB);
   return -1 unless defined($alignA); # a is defined but b is not
