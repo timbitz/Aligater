@@ -68,8 +68,12 @@ while(my $l = <>) {
     #output best alignment here.
     my($bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
     if(defined $bestK) {
-      my $output = join("\t", @{$alnHash->{$bestK}});
-    #  print "$output\n";
+ #     if($bestK =~ /\:/) { # chimeric read
+#        my $hybrid = getHybridFormat($bestK, $alnHash);
+ #     } else {
+        my $output = join("\t", @{$alnHash->{$bestK}});
+        print "$output\n"; # best non-chimeric alignments
+ #     }
     }
 
     # re-initialize for new read
@@ -87,14 +91,17 @@ while(my $l = <>) {
   my $optHash = parseOpFields(\@a); 
   my $aScore = $optHash->{"AS"};
   #my $numMiss = $optHash->{"NM"};   
-   
+
+  #print "$curRead\t$start->$end\n";  
+
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);
-  if(!defined($seHash->{"$start\:$end"}) or 
-     alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
-    $seHash->{"$start\:$end"} = $curCount;
-  } else { next; } # redundant alignment with lower rank
 
+#  if(!defined($seHash->{"$start\:$end"}) or 
+#     alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
+#    $seHash->{"$start\:$end"} = $curCount;
+#  } else { next; } # redundant alignment with lower rank
+ 
   # add start and end records.
   $sHash->{$start} = shove($sHash->{$start}, $curCount);
   $eHash->{$end} = shove($eHash->{$end}, $curCount);
@@ -136,10 +143,11 @@ sub processAlignRec {
         $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY;
         $start = $alnHash->{$a}->[1];
         $len = ($alnHash->{$b}->[1] + $alnHash->{$b}->[2]) - $alnHash->{$a}->[1];
+        my $readName = $alnHash->{$a}->[4];
         # set alnHash value for new hybrid
-        $alnHash->{"$a\:$b"} = [$score, $start, $len, "Hybrid"];
+        my $geneIdHyb = "$alnHash->{$a}->[5]\:h\:$alnHash->{$b}->[5]";
+        $alnHash->{"$a\:$b"} = [$score, $start, $len, $readName, "hybrid", $geneIdHyb];
         $eHash->{$start+$len} = shove($eHash->{$start+$len}, "$a\:$b");
-        reverb "Made Hybrid";
       }
     }
 
@@ -155,6 +163,12 @@ sub processAlignRec {
   (scalar @$found) ? processAlignRec($alnHash, $sHash, $eHash) : return;
 }
 
+sub getHybridFormat {
+  my($hyb, $alnHash) = @_;
+  explode "getHybridFormat ERROR!\n" unless (defined($hyb) and defined($alnHash));
+  my(@a) = split(/\:/, $hyb);
+  
+}
 
 # compare two alignments first by alignment score
 # then by symbol and biotypes.
@@ -171,9 +185,20 @@ sub alignCmp {
   $cmp = ($alignB->[2] <=> $alignA->[2]); #length of alignment
   return($cmp) if $cmp != 0;
   # bias against hybrids when vs non-hybrids
-  if($alignA->[5] eq "Hybrid" and $alignB->[5] ne "Hybrid") { return -1; }
-  if($alignA->[5] ne "Hybrid" and $alignB->[5] eq "Hybrid") { return 1; }
-  if($alignA->[5] eq "Hybrid" and $alignB->[5] eq "Hybrid") { return 0; }
+  if($alignA->[5] =~ /\:h\:/ and $alignB->[5] !~ /\:h\:/) { return -1; }
+  if($alignA->[5] !~ /\:h\:/ and $alignB->[5] =~ /\:h\:/) { return 1; }
+  # if both are hybrids
+  if($alignA->[5] =~ /\:h\:/ and $alignB->[5] =~ /\:h\:/) {
+    my(@splA) = split(/\:h\:/, $alignA->[5]);
+    my(@splB) = split(/\:h\:/, $alignB->[5]);
+    $cmp = (scalar @splB <=> scalar @splA); # prefer less ligation sites
+    return($cmp) if $cmp != 0;
+    my(%uniqA, %uniqB);
+    foreach my $id (@splA) { $uniqA{$id} = 1; }
+    foreach my $id (@splB) { $uniqB{$id} = 1; }
+    $cmp = (scalar(keys %uniqA) <=> scalar(keys %uniqB)); # prefer intra-molecular
+    return $cmp;
+  }
   # look at symbol and biotype
   my(undef, undef, $symA, $biotypeA) = split(/\_/, $alignA->[5]);
   my(undef, undef, $symB, $biotypeB) = split(/\_/, $alignB->[5]);
@@ -182,6 +207,8 @@ sub alignCmp {
   $cmp = (biorank($biotypeA) <=> biorank($biotypeB)); # biotype ranking
   return($cmp) if $cmp != 0;
   $cmp = (length($symB) <=> length($symA)); # gene symbol length
+  return($cmp) if $cmp != 0;
+  $cmp = ($symA cmp $symB); # finally lexographical gene symbol
   return $cmp;
 }
 

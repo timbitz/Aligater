@@ -57,11 +57,11 @@ if($helpFlag or $printUsage) {
 ";
 }
 
-sub verbPrint {
+sub reverb {
   my $str = shift;
   chomp $str;
   if($verboseFlag) {
-    print STDERR "[liger]: $str\n";
+    print STDERR "[$0]: $str\n";
   }
 }
 

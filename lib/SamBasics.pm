@@ -106,7 +106,7 @@ sub alignPosInRead {
        #increment start until match
        $start += $b[0];
      } else {
-       $length += $b[0];
+       $length += $b[0] if($q !~ /S$/);
      }
   }
   return($start, $length)
