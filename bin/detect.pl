@@ -34,6 +34,12 @@ sub explode {
   die "[aligater detect]: (Input Line $.) ERROR $str\n";
 }
 
+sub reverb {
+  my $str = shift;
+  chomp($str);
+  print STDERR "[$0]: ($.) $str\n";
+}
+
 # set iteraters
 # this stores the current set of alignments
 my $alnHash = {}; #reference to hash
@@ -60,9 +66,11 @@ while(my $l = <>) {
     processAlignRec($alnHash, $sHash, $eHash);
 
     #output best alignment here.
-    my(@bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
-    my($output) = join("\t", @{$alnHash->{$bestK[0]}});
-    print "$output\n";
+    my($bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
+    if(defined $bestK) {
+      my $output = join("\t", @{$alnHash->{$bestK}});
+    #  print "$output\n";
+    }
 
     # re-initialize for new read
     $curRead = $a[0];
@@ -82,8 +90,9 @@ while(my $l = <>) {
    
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);
-  if(alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
-    $seHash->{"$start\:$end"} = "$curCount";
+  if(!defined($seHash->{"$start\:$end"}) or 
+     alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
+    $seHash->{"$start\:$end"} = $curCount;
   } else { next; } # redundant alignment with lower rank
 
   # add start and end records.
@@ -91,7 +100,7 @@ while(my $l = <>) {
   $eHash->{$end} = shove($eHash->{$end}, $curCount);
 
   # record full alignment
-  $alnHash->{"$curCount"} = $curAln; 
+  $alnHash->{$curCount} = $curAln; 
 
   # increment for next read;
   $curCount++;
@@ -130,6 +139,7 @@ sub processAlignRec {
         # set alnHash value for new hybrid
         $alnHash->{"$a\:$b"} = [$score, $start, $len, "Hybrid"];
         $eHash->{$start+$len} = shove($eHash->{$start+$len}, "$a\:$b");
+        reverb "Made Hybrid";
       }
     }
 
