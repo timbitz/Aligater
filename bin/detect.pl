@@ -68,12 +68,12 @@ while(my $l = <>) {
     #output best alignment here.
     my($bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
     if(defined $bestK) {
- #     if($bestK =~ /\:/) { # chimeric read
-#        my $hybrid = getHybridFormat($bestK, $alnHash);
- #     } else {
+      if($bestK =~ /\:/) { # chimeric read
+        my $hybrid = getHybridFormat($bestK, $alnHash);
+      } else {
         my $output = join("\t", @{$alnHash->{$bestK}});
         print "$output\n"; # best non-chimeric alignments
- #     }
+      }
     }
 
     # re-initialize for new read
@@ -143,9 +143,9 @@ sub processAlignRec {
         $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY;
         $start = $alnHash->{$a}->[1];
         $len = ($alnHash->{$b}->[1] + $alnHash->{$b}->[2]) - $alnHash->{$a}->[1];
-        my $readName = $alnHash->{$a}->[4];
+        my $readName = $alnHash->{$a}->[3];
         # set alnHash value for new hybrid
-        my $geneIdHyb = "$alnHash->{$a}->[5]\:h\:$alnHash->{$b}->[5]";
+        my $geneIdHyb = "$alnHash->{$a}->[5]\:\-\:$alnHash->{$b}->[5]";
         $alnHash->{"$a\:$b"} = [$score, $start, $len, $readName, "hybrid", $geneIdHyb];
         $eHash->{$start+$len} = shove($eHash->{$start+$len}, "$a\:$b");
       }
@@ -167,7 +167,18 @@ sub getHybridFormat {
   my($hyb, $alnHash) = @_;
   explode "getHybridFormat ERROR!\n" unless (defined($hyb) and defined($alnHash));
   my(@a) = split(/\:/, $hyb);
-  
+  my $alpha = join("", ("A".."Z"));
+  my(%used);
+  foreach my $id (@a) {
+    my $char = substr($alpha, scalar keys %used, 1);
+    my(undef, undef, $geneSym, undef) = split(/\_/, $alnHash->{$id}->[5]);
+    if(defined($used{$geneSym})) {
+      $char = $used{$geneSym};
+    }
+    $hyb =~ s/$id/$char/g;
+    $used{$geneSym} = $char;
+  }
+  print "hybrid\t$hyb\n";
 }
 
 # compare two alignments first by alignment score
@@ -185,12 +196,12 @@ sub alignCmp {
   $cmp = ($alignB->[2] <=> $alignA->[2]); #length of alignment
   return($cmp) if $cmp != 0;
   # bias against hybrids when vs non-hybrids
-  if($alignA->[5] =~ /\:h\:/ and $alignB->[5] !~ /\:h\:/) { return -1; }
-  if($alignA->[5] !~ /\:h\:/ and $alignB->[5] =~ /\:h\:/) { return 1; }
+  if($alignA->[5] =~ /\:\-\:/ and $alignB->[5] !~ /\:\-\:/) { return -1; }
+  if($alignA->[5] !~ /\:\-\:/ and $alignB->[5] =~ /\:\-\:/) { return 1; }
   # if both are hybrids
-  if($alignA->[5] =~ /\:h\:/ and $alignB->[5] =~ /\:h\:/) {
-    my(@splA) = split(/\:h\:/, $alignA->[5]);
-    my(@splB) = split(/\:h\:/, $alignB->[5]);
+  if($alignA->[5] =~ /\:\-\:/ and $alignB->[5] =~ /\:\-\:/) {
+    my(@splA) = split(/\:\-\:/, $alignA->[5]);
+    my(@splB) = split(/\:\-\:/, $alignB->[5]);
     $cmp = (scalar @splB <=> scalar @splA); # prefer less ligation sites
     return($cmp) if $cmp != 0;
     my(%uniqA, %uniqB);
@@ -216,10 +227,10 @@ sub alignCmp {
 sub biorank {
   my $biotype = shift;
   return 6 if ($biotype eq "misc-RNA");
-  return 4 if ($biotype =~ /RNA/);
+  return 5 if ($biotype =~ /RNA/);
   return 3 if ($biotype =~ /intron/);
   return 2 if ($biotype !~ /protein-coding/);
-  return 1;
+  return 4;
 }
 
 # score over abundant symbols highest

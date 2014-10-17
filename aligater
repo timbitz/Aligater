@@ -32,29 +32,47 @@ my $verboseFlag = 0;
 
 my $alignThreads = 1;
 my $alignProg = "bowtie2";
-my $alignFlags = " --local --reorder -S";
+my $align_k = 250;
+
+my $alignVerySensLocal = "-R 3 -N 0 -L 16 -i S,1,0.50";
+my $alignBasicFlags = "--local --reorder -S";
 
 my $logFile = "out.log"; #default log.
 
-my $bamInput = 0; # SAM INPUT = 0
-		  # BAM INPUT = 1
+my $bamFormat = 0; # SAM INPUT/OUTPUT = 0
+		   # BAM INPUT/OUTPUT = 1
 
-GetOptions("bam" => \$bamInput,
+my $alignDB;
+
+GetOptions("bam" => \$bamFormat,
+           "x=s" => \$alignDB,
+           "p=i" => \$alignThreads,
 	   "help" => \$helpFlag,
 	   "verbose" => \$verboseFlag);
+
+my $alignFlags = "-p $alignThreads -k $align_k $alignVerySensLocal $alignBasicFlags";
 
 my $printUsage = 0;
 
 my $subCommand = shift @ARGV;
 
 if(!defined($subCommand) or
-   !1) {
+   (defined($subCommand) and $subCommand eq "align" and 
+	(!defined($alignDB) or
+         !defined($ARGV[0]) or 
+         $ARGV[0] !~ /\.(fq|fastq|fa|fasta)(\.gz)*$/))
+   ) {
   $printUsage = 1;
 }
 
 if($helpFlag or $printUsage) {
-  die "Usage: $0 
-";
+  if(defined($subCommand) and $subCommand eq "align") {
+    die "Usage: $0 align [options] -x <bowtie2_db> input.[fq|fa][.gz] > output.[sam|bam]
+    ";
+  } else {
+    die "Usage: $0 [sub-command] 
+    ";
+  }
 }
 
 sub reverb {
@@ -66,13 +84,26 @@ sub reverb {
 }
 
 if($subCommand eq "align") {
+  my $inputFlag;
+
+  if($ARGV[0] =~ /\.(fq|fastq)/) {
+    $inputFlag = "-q ";
+  } elsif ($ARGV[0] =~ /\.(fa|fasta)/) {
+    $inputFlag = "-f ";
+  } else {
+    die "Input error: $ARGV[0]\n";
+  }
+
+  $inputFlag = ($ARGV[0] =~ /\.gz$/) ? "<(gzip -dc $ARGV[0])" : "$ARGV[0]";
+
+  my $outCmd = ($bamFormat) ? "| samtools view -bS -" : ""; 
   system("bash", "-c", "which $alignProg > /dev/null 2> /dev/null") and
-	die "[liger]: Cannot find $alignProg which is required!\n";
-  system("bash", "-c", "$alignProg $alignFlags 2> $logFile") and 
-	die "[liger]: Alignment failed! Please check the log file ($logFile)!";
+	die "[aligater]: Cannot find $alignProg which is required!\n";
+  system("bash", "-c", "$alignProg $alignFlags -x $alignDB $inputFlag $outCmd 2> $logFile") and 
+	die "[aligater]: Alignment failed! Please check the log file ($logFile)!";
 } elsif($subCommand eq "detect") {
   # pipe to bam reader
-  my $samtoolsCmd = ($bamInput) ? "| samtools view -" : "";  
+  my $samtoolsCmd = ($bamFormat) ? "| samtools view -" : "";  
   open(DETECT, "$samtoolsCmd | $path/bin/detect.pl");
     print DETECT <STDIN>;
   close DETECT;
