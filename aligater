@@ -35,7 +35,7 @@ my $alignProg = "bowtie2";
 my $align_k = 250;
 
 my $alignVerySensLocal = "-R 3 -N 0 -L 16 -i S,1,0.50";
-my $alignBasicFlags = "--local --reorder -S";
+my $alignBasicFlags = "--local --reorder";
 
 my $logFile = "out.log"; #default log.
 
