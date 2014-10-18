@@ -169,8 +169,8 @@ sub getHybridFormat {
   my(@a) = split(/\:/, $hyb);
   my $alpha = join("", ("A".."Z"));
   my(%used);
-  my $struct = $hyb;
-  my $geneStruc = $hyb;
+  my @struct = @a;
+  my @geneStruc = @a;
   # convert chimeric read structures from gene symbol-> segment character
   foreach my $id (@a) {
     my $char = substr($alpha, scalar keys %used, 1);
@@ -178,12 +178,14 @@ sub getHybridFormat {
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
     }
-    $struct =~ s/$id/$char/g;
-    $geneStruc =~ s/$id/$geneSym/g;
+    # substitute hyb number for char or sym;
+    foreach my $s (@struct) { $s = ($s eq $id) ? $char : $id };
+    foreach my $s (@geneStruc) { $s = ($s eq $id) ? $geneSym : $id };
     $used{$geneSym} = $char;
   }
   print "hybrid\t$struct\t$geneStruc\t$hyb\n";
 }
+
 
 # compare two alignments first by alignment score
 # then by symbol and biotypes.
