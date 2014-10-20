@@ -13,6 +13,7 @@ use warnings;
 use strict;
 
 use Cwd qw(abs_path);
+use POSIX qw(strftime);
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -22,11 +23,17 @@ $path =~ s/\/$0$//;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
+use Getopt::Long;
+
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove);
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -6;
+
+my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
+
+GetOptions("o=s" => \$outputCore);
 
 sub explode {
   my $str = shift;
@@ -185,6 +192,8 @@ sub getHybridFormat {
   }
   print "hybrid\t$struct\t$geneStruc\t$hyb\n";
 }
+
+# I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
 
 
 # compare two alignments first by alignment score
