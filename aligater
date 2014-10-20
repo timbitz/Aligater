@@ -33,6 +33,7 @@ my $verboseFlag = 0;
 my $alignThreads = 1;
 my $alignProg = "bowtie2";
 my $align_k = 250;
+my $align_a = 0;
 
 my $alignVerySensLocal = "-R 3 -N 0 -L 16 -i S,1,0.50";
 my $alignBasicFlags = "--local --reorder";
@@ -47,10 +48,13 @@ my $alignDB;
 GetOptions("bam" => \$bamFormat,
            "x=s" => \$alignDB,
            "p=i" => \$alignThreads,
+           "a" => \$align_a,
+           "k=i" => \$align_k,
 	   "help" => \$helpFlag,
 	   "verbose" => \$verboseFlag);
 
-my $alignFlags = "-p $alignThreads -k $align_k $alignVerySensLocal $alignBasicFlags";
+$align_k = ($align_a) ? "-a" : "-k $align_k";
+my $alignFlags = "-p $alignThreads $align_k $alignVerySensLocal $alignBasicFlags";
 
 my $printUsage = 0;
 
