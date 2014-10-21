@@ -190,10 +190,17 @@ sub getHybridFormat {
     $geneStruc =~ s/\b$id\b/$geneSym/g;
     $used{$geneSym} = $char;
   }
+#  my $hybCode = getHybridCode($struct, $geneStruct);
   print "hybrid\t$struct\t$geneStruc\t$hyb\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
+sub getHybridCode {
+  my($chars, $genes) = @_;
+  my(@c) = split(/\:/, $chars);
+  my(@g) = split(/\:/, $genes);
+   
+}
 
 
 # compare two alignments first by alignment score
