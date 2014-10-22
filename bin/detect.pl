@@ -26,14 +26,19 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 use SamBasics qw(:all);
-use FuncBasics qw(isInt shove);
+use FuncBasics qw(isInt shove openFileHandle);
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
-our $HYBRID_PENALTY = -6;
+our $HYBRID_PENALTY = -24;
+
+our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
 
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 
 GetOptions("o=s" => \$outputCore);
+
+my $nonHybHndl = openFileHandle("| samtools view -bS > $outputCore.bam");
+my $hybHndl = openFileHandle("| samtools view -bS > $outputCore.chimera.bam");
 
 sub explode {
   my $str = shift;
@@ -190,7 +195,9 @@ sub getHybridFormat {
     $geneStruc =~ s/\b$id\b/$geneSym/g;
     $used{$geneSym} = $char;
   }
-#  my $hybCode = getHybridCode($struct, $geneStruct);
+  # get hybrid code and gene family structure.
+  my($hybCode, $familyStruc) = getHybridCode($struct, $geneStruct);
+  
   print "hybrid\t$struct\t$geneStruc\t$hyb\n";
 }
 
@@ -199,7 +206,28 @@ sub getHybridCode {
   my($chars, $genes) = @_;
   my(@c) = split(/\:/, $chars);
   my(@g) = split(/\:/, $genes);
-   
+  my $code = "S"; # intra molecular by default.
+  my(@family) = @g; #copy array
+  # try to get gene families..
+  for(my $i=0; $i < scalar(@prefix); $i++) {
+    if(defined($GENEFAM{$prefix[$i]})) {  #subst with gene family
+      $prefix[$i] = $GENEFAM{$prefix[$i]};
+    } else {  # gene fam not identified, try symbol prefix
+      my(@c) = split(/[\d\-]/, $prefix[$i]);
+      $prefix[$i] = $c[0]; 
+    }
+  }
+  # now test if it is gene family intra-molecular
+  my $geneFamStruc = join(":", @prefix);  
+  my $testStruc = $geneFamStruc;
+  for(my $i=0; $i < scalar(@prefix); $i++) {
+    my $fam = $prefix[$i];
+    $testStruc =~ s/\b$fam\b/$i/g;
+  }
+  if($chars =~ /B/) {  #possibly inter-molecular
+    $code = ($testStruc =~ /2/) ? "I" : "R";  # set code 
+  }
+  return($code, $geneFamStruc);
 }
 
 
