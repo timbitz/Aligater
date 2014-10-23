@@ -29,10 +29,11 @@ use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
-our $HYBRID_PENALTY = -24;
+our $HYBRID_PENALTY = -24; # this should be optimized.
 
 our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
 
+# set default output prefix based on timestamp
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 
 GetOptions("o=s" => \$outputCore);
@@ -40,6 +41,7 @@ GetOptions("o=s" => \$outputCore);
 my $nonHybHndl = openFileHandle("| samtools view -bS > $outputCore.bam");
 my $hybHndl = openFileHandle("| samtools view -bS > $outputCore.chimera.bam");
 
+# don't die, explode!
 sub explode {
   my $str = shift;
   chomp($str);
@@ -99,7 +101,8 @@ while(my $l = <>) {
   my($start, $len) = alignPosInRead($a[5]);
   my $end = $start + $len;
   my $strand = getStrand($a[1]); 
-  next if($STRAND_SPECIFIC and $strand eq "-");#discard if - strand and strand specific?
+  #discard if - strand and strand specific?
+  next if($STRAND_SPECIFIC and $strand eq "-");
   my $optHash = parseOpFields(\@a); 
   my $aScore = $optHash->{"AS"};
   #my $numMiss = $optHash->{"NM"};   
@@ -109,6 +112,7 @@ while(my $l = <>) {
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);
 
+# Deprecated.
 #  if(!defined($seHash->{"$start\:$end"}) or 
 #     alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
 #    $seHash->{"$start\:$end"} = $curCount;
@@ -181,24 +185,44 @@ sub getHybridFormat {
   my(@a) = split(/\:/, $hyb);
   my $alpha = join("", ("A".."Z"));
   my(%used);
-  my $struct = $hyb;
-  my $geneStruc = $hyb;
+  my $charStruct = $hyb;
+  my $geneSymStruct = $hyb;
+  my $ensTranStruct = $hyb;
+  my $ensGeneStruct = $hyb;
+  my $biotypeStruct = $hyb;
+
+  my $refPositions = $hyb;
+  $refPositions =~ s/:/,/g;
+  my $alnLengths = $refPositions;
+
+  my $ligSitePos = "";
+  my $readName = $alnHash->{$hyb}->[0];
+
   # convert chimeric read structures from gene symbol-> segment character
-  foreach my $id (@a) {
+  for(my $i=0; $i < scalar(@a); $i++) {
+    my $id = $a[$i];
     my $char = substr($alpha, scalar keys %used, 1);
-    my(undef, undef, $geneSym, undef) = split(/\_/, $alnHash->{$id}->[5]);
+    my($ensTran, $ensGene, $geneSym, $biotype) = split(/\_/, $alnHash->{$id}->[5]);
+    
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
     }
     # substitute hyb number for char or sym;
-    $struct =~ s/\b$id\b/$char/g;
-    $geneStruc =~ s/\b$id\b/$geneSym/g;
+    $charStruct =~ s/\b$id\b/$char/g;
+    $geneSymStruct =~ s/\b$id\b/$geneSym/g;
+    $ensTranStruct =~ s/\b$id\b/$ensTran/g;
+    $ensGeneStruct =~ s/\b$id\b/$ensGene/g;
+    $biotypeStruct =~ s/\b$id\b/$biotype/g;
+
+    # push alignment start position in reference.
+    $refPositions =~ s/\b$id\b/$alnHash->{$id}->[6]/;
+
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
-  my($hybCode, $familyStruc) = getHybridCode($struct, $geneStruct);
-  
-  print "hybrid\t$struct\t$geneStruc\t$hyb\n";
+  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct); 
+  print "hyb:\t$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
+  print "\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
@@ -207,7 +231,7 @@ sub getHybridCode {
   my(@c) = split(/\:/, $chars);
   my(@g) = split(/\:/, $genes);
   my $code = "S"; # intra molecular by default.
-  my(@family) = @g; #copy array
+  my(@prefix) = @g; #copy array
   # try to get gene families..
   for(my $i=0; $i < scalar(@prefix); $i++) {
     if(defined($GENEFAM{$prefix[$i]})) {  #subst with gene family
@@ -225,7 +249,7 @@ sub getHybridCode {
     $testStruc =~ s/\b$fam\b/$i/g;
   }
   if($chars =~ /B/) {  #possibly inter-molecular
-    $code = ($testStruc =~ /2/) ? "I" : "R";  # set code 
+    $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
   }
   return($code, $geneFamStruc);
 }
