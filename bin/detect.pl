@@ -16,11 +16,6 @@ use Cwd qw(abs_path);
 use POSIX qw(strftime);
 use Digest::MD5 qw(md5_hex md5_base64);
 
-# INITIALIZE
-my $path = abs_path($0);
-$0 =~ s/^.*\///;
-$path =~ s/\/$0$//;
-
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
@@ -34,6 +29,11 @@ our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
 
 our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
+
+# INITIALIZE
+my $path = abs_path($0);
+$0 =~ s/^.*\///;
+$path =~ s/\/$0$//;
 
 # set default output prefix based on timestamp
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
