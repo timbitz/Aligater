@@ -42,6 +42,7 @@ our @ISA = qw(Exporter);
 # will save memory. 
 our %EXPORT_TAGS = ( 'all' => [ qw( 
 	getSeq
+        maskstr
 	revComp
         gcContent
 	maxRegex
@@ -52,6 +53,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw( 
 	getSeq
+        maskstr
 	revComp
         gcContent
 	maxRegex
@@ -76,6 +78,18 @@ sub revComp {
   my $seq = shift;
   $seq =~ tr/ATGCatgc/TACGtacg/;
   return(scalar reverse($seq));
+}
+
+# this function works like substr, except it masks instead.
+# so maskstr("APPLE", 0, 2) returns "apPLE";
+sub maskstr {
+  my($seq, $offset, $length) = @_;
+  return($seq) unless($length);
+  my $placeHolder = ">".rand().">";
+  my $sub = substr($seq, $offset, $length, $placeHolder);
+  $sub = lc $sub;
+  $seq =~ s/$placeHolder/$sub/g;
+  return($seq);
 }
 
 sub gcContent {

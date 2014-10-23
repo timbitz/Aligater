@@ -28,6 +28,7 @@ use Getopt::Long;
 
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
+use SequenceBasics qw(maskstr);
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
@@ -185,6 +186,7 @@ sub processAlignRec {
   (scalar @$found) ? processAlignRec($alnHash, $sHash, $eHash) : return;
 }
 
+# this function outputs the `.lig` file format...
 sub getHybridFormat {
   my($hyb, $alnHash) = @_;
   explode "getHybridFormat ERROR!\n" unless (defined($hyb) and defined($alnHash));
@@ -205,32 +207,46 @@ sub getHybridFormat {
   my $readName = $alnHash->{$hyb}->[3];
   my $alnScore = $alnHash->{$hyb}->[0];
 
+  my $readSeq = $alnHash->{1}->[12];  # get raw read sequence in forward orientation
+
   # convert chimeric read structures from gene symbol-> segment character
   for(my $i=0; $i < scalar(@a); $i++) {
     my $id = $a[$i];
     my $char = substr($alpha, scalar keys %used, 1);
     my($ensTran, $ensGene, $geneSym, $biotype) = split(/\_/, $alnHash->{$id}->[5]);
-    
+    my $refPos = $alnHash->{$id}->[1];  #FIX THIS
+    my $readPos = $alnHash->{$id}->[1];
+    my $length = $alnHash->{$id}->[2];
+    # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
     }
-    # substitute hyb number for char or sym;
-    $charStruct =~ s/\b$id\b/$char/g;
+    # substitute hyb number for char or sym etc;
+    $charStruct    =~ s/\b$id\b/$char/g;
     $geneSymStruct =~ s/\b$id\b/$geneSym/g;
     $ensTranStruct =~ s/\b$id\b/$ensTran/g;
     $ensGeneStruct =~ s/\b$id\b/$ensGene/g;
     $biotypeStruct =~ s/\b$id\b/$biotype/g;
 
     # push alignment start position in reference.
-    $refPositions =~ s/\b$id\b/$alnHash->{$id}->[1]/;
-    $alnLengths =~ s/\b$id\b/$alnHash->{$id}->[2]/;
+    $refPositions  =~ s/\b$id\b/$refPos/;
+    $alnLengths    =~ s/\b$id\b/$length/;
+
+    # make read sequence structure;
+    if($i == 0) { # first alignment
+      $readSeq = maskstr($readSeq, 0, $readPos) if ($readPos > 1);
+    } elsif($i == $#a) { #last alignment
+      $readSeq = maskstr($readSeq, $readPos+$length - 1, length($readSeq) - ($readPos+$length) + 1);
+    }
+    #insert _ at ligation site. 
+    substr($readSeq, $readPos - 1, 0, "_") unless($i == 0);
 
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct); 
   print "hyb:\t$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
-  print "\t$readName\t$alnScore\t$refPositions\t$alnLengths\n";
+  print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
