@@ -14,6 +14,7 @@ use strict;
 
 use Cwd qw(abs_path);
 use POSIX qw(strftime);
+use Digest::MD5 qw(md5_hex md5_base64);
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -36,7 +37,9 @@ our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
 # set default output prefix based on timestamp
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 
-GetOptions("o=s" => \$outputCore);
+my $base64Flag = 0;
+
+GetOptions("o=s" => \$outputCore, "base" => \$base64Flag);
 
 my $nonHybHndl = openFileHandle("| samtools view -bS > $outputCore.bam");
 my $hybHndl = openFileHandle("| samtools view -bS > $outputCore.chimera.bam");
@@ -71,6 +74,9 @@ while(my $l = <>) {
   my(@a) = split(/\t/, $l); # split sam
   next unless isMapped($a[1]); # ignore unmapped reads 
   explode "Invalid SAM format!\n" unless(defined($a[0]) and isInt($a[1]));
+
+  # substitute current readname for cleaner md5
+  $a[0] = ($base64Flag) ? md5_base64($a[0]) : md5_hex($a[0]);
 
   if($a[0] ne $curRead and $curRead ne "") {
     # before moving to a new read, process current read's alignments
@@ -196,7 +202,8 @@ sub getHybridFormat {
   my $alnLengths = $refPositions;
 
   my $ligSitePos = "";
-  my $readName = $alnHash->{$hyb}->[0];
+  my $readName = $alnHash->{$hyb}->[3];
+  my $alnScore = $alnHash->{$hyb}->[0];
 
   # convert chimeric read structures from gene symbol-> segment character
   for(my $i=0; $i < scalar(@a); $i++) {
@@ -215,14 +222,15 @@ sub getHybridFormat {
     $biotypeStruct =~ s/\b$id\b/$biotype/g;
 
     # push alignment start position in reference.
-    $refPositions =~ s/\b$id\b/$alnHash->{$id}->[6]/;
+    $refPositions =~ s/\b$id\b/$alnHash->{$id}->[1]/;
+    $alnLengths =~ s/\b$id\b/$alnHash->{$id}->[2]/;
 
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct); 
   print "hyb:\t$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
-  print "\n";
+  print "\t$readName\t$alnScore\t$refPositions\t$alnLengths\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
