@@ -12,6 +12,8 @@
 use warnings;
 use strict;
 
+use Devel::Refcount qw( refcount );
+
 use Cwd qw(abs_path);
 use POSIX qw(strftime);
 use Digest::MD5 qw(md5_hex md5_base64);
@@ -97,11 +99,19 @@ while(my $l = <>) {
         #print $nonHybHndl "$output\n"; # best non-chimeric alignments
       }
     }
-
+    print STDERR "alnHash ref before: ".refcount($alnHash)."\n";
+    my $aRef = \@a;
+    print STDERR "a ref before: ".refcount($aRef)."\n";
     # re-initialize for new read
     $curRead = $a[0];
     $curCount = 1;
+    foreach my $k (keys %$alnHash) { delete $alnHash->{$k}; };
+    foreach my $k (keys %$sHash) { delete $sHash->{$k}; };
+    foreach my $k (keys %$eHash) { delete $eHash->{$k}; };
+    foreach my $k (keys %$seHash) { delete $seHash->{$k}; };
     ($alnHash, $sHash, $eHash, $seHash) = ({}, {}, {}, {}); # empty hash refs..
+    print STDERR "alnHash ref after: ".refcount($alnHash)."\n";
+    print STDERR "a ref after: ".refcount($aRef)."\n";    
   }
 
   # process current read.
@@ -127,6 +137,7 @@ while(my $l = <>) {
 #  } else { next; } # redundant alignment with lower rank
  
   # add start and end records.
+  #print STDERR "$sHash->{$start}\t$sHash->{$start}\n";
   $sHash->{$start} = shove($sHash->{$start}, $curCount);
   $eHash->{$end} = shove($eHash->{$end}, $curCount);
 
