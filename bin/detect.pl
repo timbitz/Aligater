@@ -42,8 +42,8 @@ my $base64Flag = 0;
 
 GetOptions("o=s" => \$outputCore, "base" => \$base64Flag);
 
-my $nonHybHndl = openFileHandle("| samtools view -bS > $outputCore.bam");
-my $hybHndl = openFileHandle("| samtools view -bS > $outputCore.chimera.bam");
+#my $nonHybHndl = openFileHandle("| samtools view -bS - > $outputCore.bam");
+#my $hybHndl = openFileHandle("| samtools view -bS - > $outputCore.chimera.bam");
 
 # don't die, explode!
 sub explode {
@@ -92,8 +92,9 @@ while(my $l = <>) {
       if($bestK =~ /\:/) { # chimeric read
         my $hybrid = getHybridFormat($bestK, $alnHash);
       } else {
-        my $output = join("\t", @{$alnHash->{$bestK}});
-        print "$output\n"; # best non-chimeric alignments
+        my $aRef = $alnHash->{$bestK};
+        my $output = join("\t", @$aRef[3 .. $#$aRef]);
+        #print $nonHybHndl "$output\n"; # best non-chimeric alignments
       }
     }
 
@@ -245,7 +246,7 @@ sub getHybridFormat {
   }
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct); 
-  print "hyb:\t$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
+  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\n";
 }
 
