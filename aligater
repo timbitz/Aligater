@@ -109,7 +109,9 @@ if($subCommand eq "align") {
   # pipe to bam reader
   my $samtoolsCmd = ($bamFormat) ? "| samtools view -" : "";  
   open(DETECT, "$samtoolsCmd | $path/bin/detect.pl");
-    print DETECT <STDIN>;
+  while(<STDIN>) {
+    print DETECT;
+  }
   close DETECT;
 }
 
