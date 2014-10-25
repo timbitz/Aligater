@@ -108,7 +108,7 @@ if($subCommand eq "align") {
 	die "[aligater]: Alignment failed! Please check the log file ($logFile)!";
 } elsif($subCommand eq "detect") {
   # pipe to bam reader
-  my $samtoolsCmd = ($bamFormat) ? "| samtools view -" : "";  
+  my $samtoolsCmd = ($bamFormat) ? "| samtools view -h -" : "";  
   open(DETECT, "$samtoolsCmd | $path/bin/detect.pl @ARGV");
   while(<STDIN>) {
     print DETECT;
