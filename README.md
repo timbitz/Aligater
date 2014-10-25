@@ -1,4 +1,4 @@
 a<em>ligate</em>r
 ========
 
-repo under heavy development... clone at your own risk ;-)
+repo under heavy development... you will find no help here ;-)
