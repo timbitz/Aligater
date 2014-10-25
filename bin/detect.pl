@@ -99,19 +99,19 @@ while(my $l = <>) {
         #print $nonHybHndl "$output\n"; # best non-chimeric alignments
       }
     }
-    print STDERR "alnHash ref before: ".refcount($alnHash)."\n";
-    my $aRef = \@a;
-    print STDERR "a ref before: ".refcount($aRef)."\n";
+    #print STDERR "alnHash ref before: ".refcount($alnHash)."\n";
+    #my $aRef = \@a;
+    #print STDERR "a ref before: ".refcount($aRef)."\n";
     # re-initialize for new read
     $curRead = $a[0];
     $curCount = 1;
-    foreach my $k (keys %$alnHash) { delete $alnHash->{$k}; };
-    foreach my $k (keys %$sHash) { delete $sHash->{$k}; };
-    foreach my $k (keys %$eHash) { delete $eHash->{$k}; };
-    foreach my $k (keys %$seHash) { delete $seHash->{$k}; };
+    #foreach my $k (keys %$alnHash) { reset $alnHash->{$k}; };
+    #foreach my $k (keys %$sHash) { reset $sHash->{$k}; };
+    #foreach my $k (keys %$eHash) { reset $eHash->{$k}; };
+    #foreach my $k (keys %$seHash) { reset $seHash->{$k}; };
     ($alnHash, $sHash, $eHash, $seHash) = ({}, {}, {}, {}); # empty hash refs..
-    print STDERR "alnHash ref after: ".refcount($alnHash)."\n";
-    print STDERR "a ref after: ".refcount($aRef)."\n";    
+    #print STDERR "alnHash ref after: ".refcount($alnHash)."\n";
+    #print STDERR "a ref after: ".refcount($aRef)."\n";    
   }
 
   # process current read.
