@@ -45,6 +45,7 @@ my $bamFormat = 0; # SAM INPUT/OUTPUT = 0
 
 my $alignDB;
 
+Getopt::Long::Configure("pass_through");
 GetOptions("bam" => \$bamFormat,
            "x=s" => \$alignDB,
            "p=i" => \$alignThreads,
@@ -108,11 +109,13 @@ if($subCommand eq "align") {
 } elsif($subCommand eq "detect") {
   # pipe to bam reader
   my $samtoolsCmd = ($bamFormat) ? "| samtools view -" : "";  
-  open(DETECT, "$samtoolsCmd | $path/bin/detect.pl");
+  open(DETECT, "$samtoolsCmd | $path/bin/detect.pl @ARGV");
   while(<STDIN>) {
     print DETECT;
   }
   close DETECT;
+} elsif($subCommand eq "filter") {
+
 }
 
 

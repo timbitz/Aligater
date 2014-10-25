@@ -12,8 +12,6 @@
 use warnings;
 use strict;
 
-use Devel::Refcount qw( refcount );
-
 use Cwd qw(abs_path);
 use POSIX qw(strftime);
 use Digest::MD5 qw(md5_hex md5_base64);
@@ -44,8 +42,10 @@ my $base64Flag = 0;
 
 GetOptions("o=s" => \$outputCore, "base" => \$base64Flag);
 
-#my $nonHybHndl = openFileHandle("| samtools view -bS - > $outputCore.bam");
-#my $hybHndl = openFileHandle("| samtools view -bS - > $outputCore.chimera.bam");
+my $nonHybHndl;
+open($nonHybHndl, "| samtools view -bS - > $outputCore.std.bam") or die "Can't write to $outputCore.bam";
+my $hybHndl;
+open($hybHndl,"| samtools view -bS - > $outputCore.lig.bam") or die "Can't write to $outputCore.chimera.bam";
 
 # don't die, explode!
 sub explode {
@@ -72,7 +72,11 @@ my $curCount = 1;
 
 # iterate through sam alignments
 while(my $l = <>) {
-  next if($l =~ /^(#|\@(SQ|HD|RG|PG|CO))/); #header line
+  if($l =~ /^(#|\@(SQ|HD|RG|PG|CO))/) { #header line
+    print $hybHndl $l;
+    print $nonHybHndl $l;
+    next;
+  }
   chomp($l);
   my(@a) = split(/\t/, $l); # split sam
   next unless isMapped($a[1]); # ignore unmapped reads 
@@ -93,25 +97,22 @@ while(my $l = <>) {
     if(defined $bestK) {
       if($bestK =~ /\:/) { # chimeric read
         my $hybrid = getHybridFormat($bestK, $alnHash);
-      } else {
+        my(@alns) = split(/\:/, $bestK);
+        foreach my $al (@alns) {
+          my $aRef = $alnHash->{$al};
+          my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
+          print $hybHndl "$samOutput\n";
+        }
+      } else { #non-chimeric read
         my $aRef = $alnHash->{$bestK};
-        my $output = join("\t", @$aRef[3 .. $#$aRef]);
-        #print $nonHybHndl "$output\n"; # best non-chimeric alignments
+        my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
+        print $nonHybHndl "$samOutput\n"; # best non-chimeric alignments
       }
     }
-    #print STDERR "alnHash ref before: ".refcount($alnHash)."\n";
-    #my $aRef = \@a;
-    #print STDERR "a ref before: ".refcount($aRef)."\n";
     # re-initialize for new read
     $curRead = $a[0];
     $curCount = 1;
-    #foreach my $k (keys %$alnHash) { delete $alnHash->{$k}; };
-    #foreach my $k (keys %$sHash) { delete $sHash->{$k}; };
-    #foreach my $k (keys %$eHash) { delete $eHash->{$k}; };
-    #foreach my $k (keys %$seHash) { delete $seHash->{$k}; };
     ($alnHash, $sHash, $eHash, $seHash) = ({}, {}, {}, {}); # empty hash refs..
-    #print STDERR "alnHash ref after: ".refcount($alnHash)."\n";
-    #print STDERR "a ref after: ".refcount($aRef)."\n";    
   }
 
   # process current read.
@@ -125,8 +126,6 @@ while(my $l = <>) {
   my $aScore = $optHash->{"AS"};
   #my $numMiss = $optHash->{"NM"};   
 
-  #print "$curRead\t$start->$end\n";  
-
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);  #???
 
@@ -136,7 +135,6 @@ while(my $l = <>) {
 #    $seHash->{"$start\:$end"} = $curCount;
 #  } else { next; } # redundant alignment with lower rank
  
-  print STDERR "curAln: ".refcount($curAln)."\n";
   # add start and end records.
   $sHash->{$start} = shove($sHash->{$start}, $curCount);
   $eHash->{$end} = shove($eHash->{$end}, $curCount);
@@ -148,6 +146,15 @@ while(my $l = <>) {
   $curCount++;
   $curRead = $a[0];
 }
+
+close $nonHybHndl;
+close $hybHndl;
+
+#######################################################
+#						      #
+################# BEGIN SUBROUTINES ###################
+#						      #
+#######################################################
 
 # Recursively process/collapse alignments.
 sub processAlignRec {
