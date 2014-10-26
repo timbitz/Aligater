@@ -39,14 +39,17 @@ $path =~ s/\/$0$//;
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 
 my $base64Flag = 0;
+my $suppressAlnFlag = 0;
 
-GetOptions("o=s" => \$outputCore, "base" => \$base64Flag);
+GetOptions("o=s" => \$outputCore, "base" => \$base64Flag,
+           "noaln" => \$suppressAlnFlag);
 
-my $nonHybHndl;
-open($nonHybHndl, "| samtools view -bS - > $outputCore.std.bam") or die "Can't write to $outputCore.bam";
-my $hybHndl;
-open($hybHndl,"| samtools view -bS - > $outputCore.lig.bam") or die "Can't write to $outputCore.chimera.bam";
+my $nonHybHndl, $hybHndl; # alignment output filehandles.
 
+unless($suppressAlnFlag) {
+  open($nonHybHndl, "| samtools view -bS - > $outputCore.std.bam") or die "Can't write to $outputCore.bam";
+  open($hybHndl,"| samtools view -bS - > $outputCore.lig.bam") or die "Can't write to $outputCore.chimera.bam";
+}
 # don't die, explode!
 sub explode {
   my $str = shift;
@@ -73,8 +76,10 @@ my $curCount = 1;
 # iterate through sam alignments
 while(my $l = <>) {
   if($l =~ /^(#|\@(SQ|HD|RG|PG|CO))/) { #header line
-    print $hybHndl $l;
-    print $nonHybHndl $l;
+    unless($suppressAlnFlag) {
+      print $hybHndl $l;
+      print $nonHybHndl $l;
+    }
     next;
   }
   chomp($l);
@@ -102,12 +107,12 @@ while(my $l = <>) {
         foreach my $al (@alns) {
           my $aRef = $alnHash->{$al};
           my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
-          print $hybHndl "$samOutput\n";
+          print $hybHndl "$samOutput\n" unless $suppressAlnFlag;
         }
       } else { #non-chimeric read
         my $aRef = $alnHash->{$bestK};
         my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
-        print $nonHybHndl "$samOutput\n"; # best non-chimeric alignments
+        print $nonHybHndl "$samOutput\n" unless $suppresAlnFlag; # best non-chimeric alignments
       }
     }
     # re-initialize for new read
@@ -148,8 +153,10 @@ while(my $l = <>) {
   $curRead = $a[0];
 }
 
-close $nonHybHndl;
-close $hybHndl;
+unless($suppressAlnFlag) {
+  close $nonHybHndl;
+  close $hybHndl;
+}
 
 #######################################################
 #						      #
