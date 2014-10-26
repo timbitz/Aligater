@@ -44,7 +44,8 @@ my $suppressAlnFlag = 0;
 GetOptions("o=s" => \$outputCore, "base" => \$base64Flag,
            "noaln" => \$suppressAlnFlag);
 
-my $nonHybHndl, $hybHndl; # alignment output filehandles.
+my $nonHybHndl;
+my $hybHndl; # alignment output filehandles.
 
 unless($suppressAlnFlag) {
   open($nonHybHndl, "| samtools view -bS - > $outputCore.std.bam") or die "Can't write to $outputCore.bam";
@@ -112,7 +113,7 @@ while(my $l = <>) {
       } else { #non-chimeric read
         my $aRef = $alnHash->{$bestK};
         my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
-        print $nonHybHndl "$samOutput\n" unless $suppresAlnFlag; # best non-chimeric alignments
+        print $nonHybHndl "$samOutput\n" unless $suppressAlnFlag; # best non-chimeric alignments
       }
     }
     # re-initialize for new read
