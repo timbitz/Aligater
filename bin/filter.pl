@@ -9,7 +9,6 @@ use warnings;
 use strict;
 
 use Cwd qw(abs_path);
-use POSIX qw(strftime);
 use Digest::MD5 qw(md5_hex md5_base64);
 
 use FindBin;
@@ -33,6 +32,8 @@ my $RUNBLAST = 1;
 my $bpMonoLimit = 7;
 my $gcLimit = 0.8;
 
+my $threads = 1;
+
 GetOptions("o=s" => \$outputCore);
 
 # don't die, explode!
@@ -50,7 +51,16 @@ sub reverb {
 
 randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
-open(FORBLAST, ">tmp/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
+
+if($RUNBLAST) {
+
+  # check if blastn is installed and BLASTDB is set in ENV;
+  system("bash", "-c", "which blastn > /dev/null 2> /dev/null") and
+              die "[aligater filter]: Cannot find blastn which is required!\n";
+
+  open(FORBLAST, ">$path/../tmp/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
+}
+
 
 # main loop, collect relevant entries and store into memory if --blast
 while(my $l = <>) {
@@ -65,16 +75,18 @@ while(my $l = <>) {
 }
 close FORBLAST;
 
-if($RUNBLAST) {
-  system("blastn -query tmp/tmp_$rand.fa -task blastn -db human_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads 4 > tmp_$rand.human_genomic.out");
-  system("blastn -query tmp/tmp_$rand.fa -task blastn -db other_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads 4 > tmp_$rand.other_genomic.out");
-  system("blastn -query tmp/tmp_$rand.fa -task blastn -db nt -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads 4 > tmp_$rand.nt.out");
 
-  openBlastOutAndRemoveHits("tmp/tmp_$rand.human_genomic.out");
-  openBlastOutAndRemoveHits("tmp/tmp_$rand.other_genomic.out");
-  openBlastOutAndRemoveHits("tmp/tmp_$rand.nt.out");
+if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 
-  system("rm tmp/tmp_$rand.*");
+  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db human_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.human_genomic.out");
+  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db other_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.other_genomic.out");
+  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db nt -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.nt.out");
+  
+  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.human_genomic.out");
+  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.other_genomic.out");
+  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.nt.out");
+
+  system("rm $path/../tmp/tmp_$rand.*");
 }
 
 #######################################################
