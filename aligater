@@ -118,5 +118,6 @@ if($subCommand eq "align") {
 
 }
 
-
 exit $EXIT_STATUS >> 8;
+
+__END__
