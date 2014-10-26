@@ -241,15 +241,15 @@ sub getHybridFormat {
       $char = $used{$geneSym};
     }
     # substitute hyb number for char or sym etc;
-    $charStruct    =~ s/\b$id\b/$char/g;
-    $geneSymStruct =~ s/\b$id\b/$geneSym/g;
-    $ensTranStruct =~ s/\b$id\b/$ensTran/g;
-    $ensGeneStruct =~ s/\b$id\b/$ensGene/g;
-    $biotypeStruct =~ s/\b$id\b/$biotype/g;
+    $charStruct    =~ s/\b(?<!\-)$id(?!\-)\b/$char/g;
+    $geneSymStruct =~ s/\b(?<!\-)$id(?!\-)\b/$geneSym/g;
+    $ensTranStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensTran/g;
+    $ensGeneStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensGene/g;
+    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype/g;
 
     # push alignment start position in reference.
-    $refPositions  =~ s/\b$id\b/$refPos/;
-    $alnLengths    =~ s/\b$id\b/$length/;
+    $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
+    $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
 
     # make read sequence structure;
     if($i == 0) { # first alignment
