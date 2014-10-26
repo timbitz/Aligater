@@ -84,7 +84,8 @@ while(my $l = <>) {
 
   # substitute current readname for cleaner md5
   $a[0] = ($base64Flag) ? md5_base64($a[0]) : md5_hex($a[0]);
-
+  $a[0] = substr($a[0], 0, 12);  # 10 ** 18 should be enough
+   
   if($a[0] ne $curRead and $curRead ne "") {
     # before moving to a new read, process current read's alignments
     # from $alnHash
