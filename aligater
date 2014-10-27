@@ -114,8 +114,12 @@ if($subCommand eq "align") {
     print DETECT;
   }
   close DETECT;
-} elsif($subCommand eq "filter") {
-
+} elsif($subCommand eq "post") {
+  open(POST, "| $path/bin/post.pl @ARGV");
+  while(<STDIN>) {
+    print POST;
+  }
+  close POST;
 }
 
 exit $EXIT_STATUS >> 8;
