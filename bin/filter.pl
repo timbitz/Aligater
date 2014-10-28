@@ -18,7 +18,7 @@ use Getopt::Long;
 
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG isInt shove openFileHandle);
-use SequenceBasics qw(maskstr);
+use SequenceBasics qw(gcContent);
 
 # INITIALIZE
 my $path = abs_path($0);
