@@ -29,6 +29,8 @@ $path =~ s/\/$0$//;
 my $STRICT = 1;
 my $RUNBLAST = 1;
 
+my $blastDb = "human_genomic,other_genomic,nt";
+
 my $bpMonoLimit = 7;
 my $gcLimit = 0.8;
 
@@ -77,15 +79,10 @@ close FORBLAST;
 
 
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
-
-  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db human_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.human_genomic.out");
-  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db other_genomic -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.other_genomic.out");
-  system("blastn -query $path/../tmp/tmp_$rand.fa -task blastn -db nt -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > tmp_$rand.nt.out");
-  
-  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.human_genomic.out");
-  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.other_genomic.out");
-  openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.nt.out");
-
+  foreach my $db (split(/\,/, $blastDb)) {
+    runBlastn($db, "tmp_$rand", $threads);
+    openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.$db.out");
+  }
   system("rm $path/../tmp/tmp_$rand.*");
 }
 
@@ -94,6 +91,13 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 ################# BEGIN SUBROUTINES ###################
 #                                                     #
 #######################################################
+
+sub runBlastn {
+  my($db, $basename, $threads) = @_;
+  system("blastn -query $path/../tmp/$name.fa -task blastn -db $db -word_size 20 \
+         -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' \
+         -perc_identity 75 -culling_limit 1 -num_threads $threads > $path/../tmp/$name.$db.out");
+}
 
 sub openBlastOutAndRemoveHits {
   my($filename, $filterHash) = @_;
