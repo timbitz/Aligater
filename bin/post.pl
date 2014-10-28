@@ -29,6 +29,8 @@ $path =~ s/\/$0$//;
 my $STRICT = 1;
 my $RUNBLAST = 1;
 
+my $blastDb = "human_genomic,other_genomic,nt";
+
 my $bpMonoLimit = 7;
 my $gcLimit = 0.8;
 
@@ -77,12 +79,10 @@ close FORBLAST;
 
 
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
-
   foreach my $db (split(/\,/, $blastDb)) {
     runBlastn($db, "tmp_$rand", $threads);
     openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.$db.out");
   }
-  
   system("rm $path/../tmp/tmp_$rand.*");
 }
 
