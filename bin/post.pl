@@ -112,6 +112,17 @@ sub runRactIP {
   my $deltaG = $1; # parse energy
   my(@strA) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structA);
   my(@strB) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structB);
+  
+}
+
+sub maxLength {
+  my $aRef = shift;
+  my $maxLen = 0;
+  foreach my $elem (@$aRef) {
+    my $l = length($elem);
+    $maxLen = ($l > $maxLen) ? $l : $maxLen;
+  }
+  return($maxLen);
 }
 
 sub runBlastn {
