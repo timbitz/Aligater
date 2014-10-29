@@ -53,6 +53,12 @@ sub reverb {
   print STDERR "[$0]: ($.) $str\n";
 }
 
+sub checkSoft {
+  my $prog = shift;
+  system("bash", "-c", "which $prog > /dev/null 2> /dev/null") and
+              explode "Cannot find $prog which is required!\n";
+}
+
 # make sure another instance doesn't try to write to the same files...
 randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
@@ -61,16 +67,15 @@ my $rand = substr(md5_hex(rand), 0, 6);
 ## CHECK IF SOFTWARE IS INSTALLED ------------------------#
 if($RUNBLAST) {
   # check if blastn is installed and BLASTDB is set in ENV;
-  system("bash", "-c", "which blastn > /dev/null 2> /dev/null") and
-              die "[aligater post]: Cannot find blastn which is required!\n";
-  die "[aligater post]: BLASTDB environmental variable must be set!\n" unless defined($ENV{"BLASTDB"});
+  checkSoft("blastn");
+  explode "BLASTDB environmental variable must be set!\n" unless defined($ENV{"BLASTDB"});
  
   open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
 
-if(
-
-
+checkSoft("ractip") if $RUNRACTIP;
+my(undef, $racVer) = split(/\s|\./, `ractip -V`);
+explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
 #---------------------------------------------------------#
 
 # main loop, collect relevant entries and store into memory if --blast
