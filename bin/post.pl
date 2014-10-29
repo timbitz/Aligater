@@ -57,13 +57,14 @@ sub reverb {
 randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
 
+
 if($RUNBLAST) {
 
   # check if blastn is installed and BLASTDB is set in ENV;
   system("bash", "-c", "which blastn > /dev/null 2> /dev/null") and
               die "[aligater post]: Cannot find blastn which is required!\n";
   die "[aligater post]: BLASTDB environmental variable must be set!\n" unless defined($ENV{"BLASTDB"});
-
+ 
   open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
 
@@ -73,11 +74,14 @@ while(my $l = <>) {
   chomp($l);
   my(@a) = split(/\t/, $l);
 
+  # HARD FILTERS ----------------------#
   # mononucleotide tract filter
-  next if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);.
-  next if(length($seq) < 44) { next; } # need at least 22bp on either side.
-  if($STRICT and gcContent($seq) >= $gcLimit) { next; }
-
+  next if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
+  next if length($seq) < 44; # need at least 22bp on either side.
+  next if gcContent($seq) >= $gcLimit; # greater than limit of gc content
+  #------------------------------------#
+ 
+  
 }
 close FORBLAST;
 
