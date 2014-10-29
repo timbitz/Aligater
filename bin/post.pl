@@ -25,6 +25,8 @@ my $path = abs_path($0);
 $0 =~ s/^.*\///;
 $path =~ s/\/$0$//;
 
+my $tmpPath = "$path/../tmp";
+
 # GLOBAL INIT
 my $STRICT = 1;
 my $RUNBLAST = 1;
@@ -42,7 +44,7 @@ GetOptions("o=s" => \$outputCore);
 sub explode {
   my $str = shift;
   chomp($str);
-  die "[aligater detect]: (Input Line $.) ERROR $str\n";
+  die "[aligater post]: (Input Line $.) ERROR $str\n";
 }
 
 sub reverb {
@@ -51,6 +53,7 @@ sub reverb {
   print STDERR "[$0]: ($.) $str\n";
 }
 
+# make sure another instance doesn't try to write to the same files...
 randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
 
@@ -58,9 +61,10 @@ if($RUNBLAST) {
 
   # check if blastn is installed and BLASTDB is set in ENV;
   system("bash", "-c", "which blastn > /dev/null 2> /dev/null") and
-              die "[aligater filter]: Cannot find blastn which is required!\n";
+              die "[aligater post]: Cannot find blastn which is required!\n";
+  die "[aligater post]: BLASTDB environmental variable must be set!\n" unless defined($ENV{"BLASTDB"});
 
-  open(FORBLAST, ">$path/../tmp/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
+  open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
 
 
@@ -81,9 +85,9 @@ close FORBLAST;
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   foreach my $db (split(/\,/, $blastDb)) {
     runBlastn($db, "tmp_$rand", $threads);
-    openBlastOutAndRemoveHits("$path/../tmp/tmp_$rand.$db.out");
+    openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out");
   }
-  system("rm $path/../tmp/tmp_$rand.*");
+  system("rm $tmpPath/tmp_$rand.*");
 }
 
 #######################################################
@@ -91,6 +95,23 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 ################# BEGIN SUBROUTINES ###################
 #                                                     #
 #######################################################
+
+sub runRactIP {
+  my($seqA, $seqB, $param) = @_;
+  $seqA =~ s/T/U/g if($seqA =~ /T/);
+  $seqB =~ s/T/U/g if($seqB =~ /T/);
+  my $rand = substr(md5_hex(rand), 0, 4);   
+  system("echo \">seqA\n$seqA\" > $tmpPath/$rand.seqA.fa"); 
+  system("echo \">seqB\n$seqB\" > $tmpPath/$rand.seqB.fa");
+  $param = defined($param) ? "-P $param" : "";
+  my(@res) = `ractip $tmpPath/$rand.seqA.fa $tmpPath/$rand.seqB.fa -e $param`;
+  my undef = `rm $tmpPath/$rand*`;
+  chomp @res;
+  my($structA, $structB) = $res[qw(1 3)]; #set structures
+  $res[6] =~ /JS\= ([\d\-\.]+)/;
+  my $deltaG = $1; # parse energy
+  
+}
 
 sub runBlastn {
   my($db, $basename, $threads) = @_;
