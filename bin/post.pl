@@ -58,8 +58,8 @@ randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
 
 
+## CHECK IF SOFTWARE IS INSTALLED ------------------------#
 if($RUNBLAST) {
-
   # check if blastn is installed and BLASTDB is set in ENV;
   system("bash", "-c", "which blastn > /dev/null 2> /dev/null") and
               die "[aligater post]: Cannot find blastn which is required!\n";
@@ -68,6 +68,10 @@ if($RUNBLAST) {
   open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
 
+if(
+
+
+#---------------------------------------------------------#
 
 # main loop, collect relevant entries and store into memory if --blast
 while(my $l = <>) {
@@ -82,7 +86,7 @@ while(my $l = <>) {
   #------------------------------------#
  
   
-}
+} # end main loop
 close FORBLAST;
 
 
@@ -93,6 +97,8 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   }
   system("rm $tmpPath/tmp_$rand.*");
 }
+
+# now print the remaining results.
 
 #######################################################
 #                                                     #
@@ -123,7 +129,7 @@ sub runRactIP {
   my(@strA) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structA);
   my(@strB) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structB);
   my $maxInterLenA = maxLength(\@strA, "[\[\]]");
-  my $maxInterLenB = maxLength(\@strA, "[\[\]]");
+  my $maxInterLenB = maxLength(\@strB, "[\[\]]");
   my $maxInterLen = max($maxInterLenA, $maxInterLenB);
  
   return($deltaG, $structA, $structB, $maxInterLen);
