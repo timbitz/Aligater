@@ -110,7 +110,8 @@ sub runRactIP {
   my($structA, $structB) = $res[qw(1 3)]; #set structures
   $res[6] =~ /JS\= ([\d\-\.]+)/;
   my $deltaG = $1; # parse energy
-  
+  my(@strA) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structA);
+  my(@strB) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structB);
 }
 
 sub runBlastn {
