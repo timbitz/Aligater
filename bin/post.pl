@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 use SamBasics qw(:all);
-use FuncBasics qw(randomSeedRNG isInt shove openFileHandle);
+use FuncBasics qw(randomSeedRNG max min);
 use SequenceBasics qw(gcContent);
 
 # INITIALIZE
@@ -96,6 +96,12 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 #                                                     #
 #######################################################
 
+# this function runs the RactIP program for RNA-RNA interaction prediction
+# using dynamic programming using the -e parameter and an optional -P param file
+# returned are: deltaG, the first structure (bracket notation), second structure,
+# followed by the maximum intermolecular interaction stem length ( [[[[[ or ]]]]] )
+# this doesn't yet make use of the z-score function or check that the program is
+# properly installed or of the correct version
 sub runRactIP {
   my($seqA, $seqB, $param) = @_;
   $seqA =~ s/T/U/g if($seqA =~ /T/);
@@ -112,14 +118,20 @@ sub runRactIP {
   my $deltaG = $1; # parse energy
   my(@strA) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structA);
   my(@strB) = split(/(?<=\.)(?=[\]\[\(\)])|(?<=[\]\[\(\)])(?=\.)/, $structB);
-  
+  my $maxInterLenA = maxLength(\@strA, "[\[\]]");
+  my $maxInterLenB = maxLength(\@strA, "[\[\]]");
+  my $maxInterLen = max($maxInterLenA, $maxInterLenB);
+ 
+  return($deltaG, $structA, $structB, $maxInterLen);
 }
 
+# used by the runRactIP program.
 sub maxLength {
-  my $aRef = shift;
+  my($aRef, $char) = @_;
   my $maxLen = 0;
   foreach my $elem (@$aRef) {
     my $l = length($elem);
+    next unless $elem =~ /^$char+$/;
     $maxLen = ($l > $maxLen) ? $l : $maxLen;
   }
   return($maxLen);
