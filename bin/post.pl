@@ -26,6 +26,7 @@ $0 =~ s/^.*\///;
 $path =~ s/\/$0$//;
 
 my $tmpPath = "$path/../tmp";
+my $libPath = "$path/../lib";
 
 # GLOBAL INIT
 my $STRICT = 1;
@@ -72,10 +73,11 @@ if($RUNBLAST) {
  
   open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
-
-checkSoft("ractip") if $RUNRACTIP;
-my(undef, $racVer) = split(/\s|\./, `ractip -V`);
-explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
+if($RUNRACTIP) {
+  checkSoft("ractip");
+  my(undef, $racVer) = split(/\s|\./, `ractip -V`);
+  explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
+}
 #---------------------------------------------------------#
 
 # main loop, collect relevant entries and store into memory if --blast
@@ -89,8 +91,10 @@ while(my $l = <>) {
   next if length($seq) < 44; # need at least 22bp on either side.
   next if gcContent($seq) >= $gcLimit; # greater than limit of gc content
   #------------------------------------#
+
+  my($dG, $strA, $strB, $len) = runRactIP($seqA, $seqB, $libPath);
+  print "$dG\t$strA\t$strB\t$len\n";
  
-  
 } # end main loop
 close FORBLAST;
 
