@@ -179,23 +179,43 @@ sub findUAinStem {
   foreach my $seg (@$structBref) {
     ($cnt += length($seg) and next) unless $seg =~ /^$char+$/;
     $revSeqB .= substr($seqB, $cnt, length($seg));
-    push(@stemB, "." x length($seg);
+    push(@stemB, "." x length($seg));
     $cnt += length($seg);
   }
-  $revSeqB = reverse scalar $revSeqB;
+  $revSeqB = scalar reverse $revSeqB;
   print "$intSeqA\n$revSeqB\n";
   my %xlinkPos;
   # now check for diagonal Us,  AB [[ to ]] DC
-  #                             .U    to    .U or U. to U.
-  for(my $i=0; $i < length($intSeqA) - 1; $i++) {
-    my $a = substr($intSeqA, $i, 1);
-    my $b = substr($intSeqA, $i+1, 1);
-    my $c = substr($revSeqB, $i, 1);
-    my $d = substr($revSeqB, $i+1, 1);
-    $xlinkPos{$i} = 1 if($a =~ /u|U/ and $d =~ /u|U/);
-    $xlinkPos{$i+1} = 1 if($b =~ /u|U/ and $c =~ /u|U/);
+  $cnt = 0;
+  foreach my $seg (@stemA) {
+    my $segA = substr($intSeqA, $cnt, length($seg));
+    my $segB = substr($revSeqB, $cnt, length($seg));
+    countDiagU($segA, $segB, \%xlinkPos, $cnt);
+    $cnt += length($seg);
+  }
+  $cnt = 0;
+  foreach my $seg (@stemB) {
+    my $segA = substr($intSeqA, $cnt, length($seg));
+    my $segB = substr($revSeqB, $cnt, length($seg));
+    countDiagU($segA, $segB, \%xlinkPos, $cnt);
+    $cnt += length($seg);
   }
   return(scalar(keys %xlinkPos));
+}
+
+# check for diagonal Us,  AB [[ to ]] DC
+#                         .U    to    .U or U. to U.
+sub countDiagU {
+  my($stemA, $stemB, $xlinkHash, $offset) = @_;
+  for(my $i=0; $i < length($stemA) - 1; $i++) {
+    my $a = substr($stemA, $i, 1);
+    my $b = substr($stemA, $i+1, 1);
+    my $c = substr($stemB, $i, 1);
+    my $d = substr($stemB, $i+1, 1);
+    $xlinkHash->{$offset + $i} = 1 if($a =~ /u|U/ and $d =~ /u|U/);
+    $xlinkHash->{$offset + $i+1} = 1 if($b =~ /u|U/ and $c =~ /u|U/);
+  }
+  #return void. 
 }
 
 # used by the runRactIP program.
