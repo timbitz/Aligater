@@ -31,7 +31,8 @@ my $libPath = "$path/../lib";
 my %toFilter;  #main memory use of the program
 
 # GLOBAL INIT
-my $STRICT = 1;
+my $STRICT = 0;
+
 my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
 
@@ -64,7 +65,7 @@ sub reverb {
 sub checkSoft {
   my $prog = shift;
   system("bash", "-c", "which $prog > /dev/null 2> /dev/null") and
-              explode "Cannot find $prog which is required!\n";
+              explode "Cannot find $prog which is required!";
 }
 
 # make sure another instance doesn't try to write to the same files...
@@ -76,7 +77,7 @@ my $rand = substr(md5_hex(rand), 0, 6);
 if($RUNBLAST) {
   # check if blastn is installed and BLASTDB is set in ENV;
   checkSoft("blastn");
-  explode "BLASTDB environmental variable must be set!\n" unless defined($ENV{"BLASTDB"});
+  explode "BLASTDB environmental variable must be set!" unless defined($ENV{"BLASTDB"});
  
   open(FORBLAST, ">$tmpPath/tmp_$rand.fa") or die "Can't open tmp/tmp_$rand.fa for writing!\n";
 }
