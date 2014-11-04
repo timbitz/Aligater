@@ -106,10 +106,10 @@ while(my $l = <>) {
   my($seqA, $seqB) = split(/\_/, $seq); 
 
   my($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007.par");
-  my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
-  my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
-  my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
-  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt\t$altDG>>>>\n";
+  #my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
+ # my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
+ # my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
+  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt>>>>\n";
  
 } # end main loop
 close FORBLAST;
@@ -182,6 +182,7 @@ sub findUAinStem {
     push(@stemB, "." x length($seg));
     $cnt += length($seg);
   }
+  @stemB = reverse @stemB;
   $revSeqB = scalar reverse $revSeqB;
   print "$intSeqA\n$revSeqB\n";
   my %xlinkPos;
