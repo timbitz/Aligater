@@ -137,7 +137,7 @@ while(my $l = <>) {
     # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
 
     # HARD FILTERS POST RACTIP-----------------------------------------#
-    if($a[0] eq "I") {
+    if($a[0] eq "I") {  #perhaps just reset the code to R instead of these hard filters TODO!!
       next unless($len >= $interStemLimit);
       next unless($amt >= $interCrossLimit);
     }
@@ -147,13 +147,14 @@ while(my $l = <>) {
   if($RUNBLAST) { # if we are using blast to filter we need to store ligs in memory
     # loop through each ligation site
     while($seq =~ /\_/g) {
-      my($leftCoor, $rightCoor) = ( max(0, $-[0] - 20), min($-[0] + 21, length($seq)) );
-      my $ligString = substr( $seq, $leftCoor, $rightCoor - $leftCoor );
+      my $pos = $-[0];
+      my($leftCoor, $rightCoor) = ( max(0, $pos - 20), min($pos + 20, length($seq)) );
+      my $ligString = substr( $seq, $leftCoor, ($rightCoor + 1) - $leftCoor );
       $ligString =~ s/\_//g;
-      my($leftLig, $rightLig) = ( $-[0] - $leftCoor, $rightCoor - $-[0] );
+      my($leftLig, $rightLig) = ( $pos - $leftCoor, $rightCoor - $pos );
       #save read and print for blast
       $toFilter{"LIG_$."} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
-      print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligSeq\n";
+      print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligString\n";
     }
   } else { # no need to waste memory, lets just print as we go. 
     print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
@@ -162,17 +163,16 @@ while(my $l = <>) {
 } # end main loop
 close FORBLAST;
 
-die;  #debug.
 
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   foreach my $db (split(/\,/, $blastDb)) {
-    runBlastn($db, "tmp_$rand", $threads);
+    runBlastn($db, "tmp_$rand", $threads, $tmpPath);
     openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out");
   }
   system("rm $tmpPath/tmp_$rand.*");
   
   # now print the remaining results.
-  foreach my $key (%toFilter) {
+  foreach my $key (keys %toFilter) {
     print "$toFilter{$key}";
   }
 }
@@ -237,7 +237,7 @@ sub findUAinStem {
   }
   @stemB = reverse @stemB;
   $revSeqB = scalar reverse $revSeqB;
-  print "$intSeqA\n$revSeqB\n";
+#  print "$intSeqA\n$revSeqB\n"; #debugging
   my %xlinkPos;
   # now check for diagonal Us,  AB [[ to ]] DC
   $cnt = 0;
@@ -285,10 +285,8 @@ sub maxLength {
 }
 
 sub runBlastn {
-  my($db, $basename, $threads) = @_;
-  system("blastn -query $path/../tmp/$basename.fa -task blastn -db $db -word_size 20 \
-         -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' \
-         -perc_identity 75 -culling_limit 1 -num_threads $threads > $path/../tmp/$basename.$db.out");
+  my($db, $basename, $threads, $tmpPath) = @_;
+  system("blastn -query $tmpPath/$basename.fa -task blastn -db $db -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > $tmpPath/$basename.$db.out");
 }
 
 sub openBlastOutAndRemoveHits {
