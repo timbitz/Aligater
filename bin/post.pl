@@ -52,6 +52,7 @@ GetOptions("gc=f" => \$gcLimit,
            "mono=i" => \$bpMonoLimit,
            "p=i" => \$threads, 
            "strict" => \$strictOpt,
+           "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST);
 
@@ -60,7 +61,12 @@ if($strictOpt) {
   $gcLimit = 0.8;
   $bpMonoLimit = 7;
   $interCrossLimit = 1;
-  $interStemLimit = 4;
+  $interStemLimit = 5;
+}
+
+if($fullOpt) {
+  $RUNRACTIP = 1;
+  $RUNBLAST = 1;
 }
 
 # don't die, explode!
@@ -107,31 +113,55 @@ while(my $l = <>) {
   chomp($l);
   my(@a) = split(/\t/, $l);
 
-  my $seq = $a[8]; 
-  my $gcContent = gcContent($seq);
+  my $seq = $a[8];
+  my $gcSeq =~ s/\_//g;
+  my $gcContent = gcContent($gcSeq);
 
   # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
   next if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
-  next if length($seq) < 44; # need at least 22bp on either side.
+  next if length($seq) < 45; # need at least 22bp on either side.
   next if $gcContent >= $gcLimit; # greater than limit of gc content
   #------------------------------------------------------------------#
 
   my($seqA, $seqB) = split(/\_/, $seq); 
 
-  my($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007.par");
-  #my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
- # my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
- # my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
+  my($dG, $strA, $strB, $len, $amt) = ("","","","","");
 
-  # HARD FILTERS POST------------------------------------------------#
-  if($a[0] eq "I") {
-    next unless($len >= $interStemLimit);
-    next unless($amt >= $interCrossLimit);
+  if($RUNRACTIP) {
+    ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007.par");
+
+    # DEPRECATED: for debugging:
+    # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
+    # my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
+    # my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
+
+    # HARD FILTERS POST RACTIP-----------------------------------------#
+    if($a[0] eq "I") {
+      next unless($len >= $interStemLimit);
+      next unless($amt >= $interCrossLimit);
+    }
+    #------------------------------------------------------------------#
   }
-  #------------------------------------------------------------------#
-  
-  print "$l\t$strA\t$strB\t$dG\t$len\t$amt\t$gcContent\n"; 
+
+  if($RUNBLAST) { # if we are using blast to filter we need to store ligs in memory
+
+    while($seq =~ /\_/) {
+
+      my($leftCoor, $rightCoor) = ( max(0, $-[0] - 20), min($-[0] + 20, length($seq)) );
+      my $ligString = substr( $seq, $leftCoor, $rightCoor - $leftCoor );
+      my($leftLig, $rightLig) = ( $a[5] - $leftCoor, $a[10] - $leftCoor );
+      print STDERR "$ligString\n";
+      #save read and print for blast
+      $toFilter{"LIG_$total"} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+      print FORBLAST ">LIG_$total\:$left\:$right\n$ligSeq\n";
+    }
+    die "debug";
+  } else { # no need to waste memory, lets just print as we go. 
+    print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
+  }
+
+  # for debugging:
   #  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt>>>>\n";
  
 } # end main loop
@@ -144,9 +174,13 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
     openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out");
   }
   system("rm $tmpPath/tmp_$rand.*");
+  
+  # now print the remaining results.
+  foreach my $key (%toFilter) {
+    print "$toFilter{$key}";
+  }
 }
-
-# now print the remaining results.
+## END MAIN ##
 
 #######################################################
 #                                                     #
