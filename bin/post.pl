@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 use SamBasics qw(:all);
-use FuncBasics qw(randomSeedRNG max min);
+use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
 
 # INITIALIZE
@@ -38,8 +38,8 @@ my $RUNRACTIP = 0;
 my $blastDb = "human_genomic,other_genomic,nt";
 
 # defaults are the lack there of
-my $bpMonoLimit = Inf;
-my $gcLimit = 0;
+my $bpMonoLimit = "Inf";
+my $gcLimit = 1;
 my $threads = 1;
 
 my $interCrossLimit = 0;
@@ -47,6 +47,7 @@ my $interStemLimit = 0;
 
 # set default as strict;
 my $strictOpt = 0;
+my $fullOpt = 0;
 
 GetOptions("gc=f" => \$gcLimit, 
            "mono=i" => \$bpMonoLimit,
@@ -114,7 +115,8 @@ while(my $l = <>) {
   my(@a) = split(/\t/, $l);
 
   my $seq = $a[8];
-  my $gcSeq =~ s/\_//g;
+  my $gcSeq  = $seq;
+  $gcSeq =~ s/\_//g;
   my $gcContent = gcContent($gcSeq);
 
   # HARD FILTERS ----------------------------------------------------#
@@ -133,8 +135,6 @@ while(my $l = <>) {
 
     # DEPRECATED: for debugging:
     # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
-    # my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
-    # my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
 
     # HARD FILTERS POST RACTIP-----------------------------------------#
     if($a[0] eq "I") {
@@ -145,28 +145,24 @@ while(my $l = <>) {
   }
 
   if($RUNBLAST) { # if we are using blast to filter we need to store ligs in memory
-
-    while($seq =~ /\_/) {
-
-      my($leftCoor, $rightCoor) = ( max(0, $-[0] - 20), min($-[0] + 20, length($seq)) );
+    # loop through each ligation site
+    while($seq =~ /\_/g) {
+      my($leftCoor, $rightCoor) = ( max(0, $-[0] - 20), min($-[0] + 21, length($seq)) );
       my $ligString = substr( $seq, $leftCoor, $rightCoor - $leftCoor );
-      my($leftLig, $rightLig) = ( $a[5] - $leftCoor, $a[10] - $leftCoor );
-      print STDERR "$ligString\n";
+      $ligString =~ s/\_//g;
+      my($leftLig, $rightLig) = ( $-[0] - $leftCoor, $rightCoor - $-[0] );
       #save read and print for blast
-      $toFilter{"LIG_$total"} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
-      print FORBLAST ">LIG_$total\:$left\:$right\n$ligSeq\n";
+      $toFilter{"LIG_$."} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+      print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligSeq\n";
     }
-    die "debug";
   } else { # no need to waste memory, lets just print as we go. 
     print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
   }
-
-  # for debugging:
-  #  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt>>>>\n";
  
 } # end main loop
 close FORBLAST;
 
+die;  #debug.
 
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   foreach my $db (split(/\,/, $blastDb)) {
