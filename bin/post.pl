@@ -31,23 +31,37 @@ my $libPath = "$path/../lib";
 my %toFilter;  #main memory use of the program
 
 # GLOBAL INIT
-my $STRICT = 0;
 
 my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
 
 my $blastDb = "human_genomic,other_genomic,nt";
 
-my $bpMonoLimit = 7;
-my $gcLimit = 0.8;
-
+# defaults are the lack there of
+my $bpMonoLimit = Inf;
+my $gcLimit = 0;
 my $threads = 1;
+
+my $interCrossLimit = 0;
+my $interStemLimit = 0;
+
+# set default as strict;
+my $strictOpt = 0;
 
 GetOptions("gc=f" => \$gcLimit, 
            "mono=i" => \$bpMonoLimit,
            "p=i" => \$threads, 
+           "strict" => \$strictOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST);
+
+#set hard filters
+if($strictOpt) {
+  $gcLimit = 0.8;
+  $bpMonoLimit = 7;
+  $interCrossLimit = 1;
+  $interStemLimit = 4;
+}
 
 # don't die, explode!
 sub explode {
@@ -96,12 +110,12 @@ while(my $l = <>) {
   my $seq = $a[8]; 
   my $gcContent = gcContent($seq);
 
-  # HARD FILTERS ----------------------#
+  # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
   next if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
   next if length($seq) < 44; # need at least 22bp on either side.
   next if $gcContent >= $gcLimit; # greater than limit of gc content
-  #------------------------------------#
+  #------------------------------------------------------------------#
 
   my($seqA, $seqB) = split(/\_/, $seq); 
 
@@ -109,7 +123,16 @@ while(my $l = <>) {
   #my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
  # my $altStruc = ($strA eq $strA_ua and $strB eq $strB_ua) ? "no" : "yes";
  # my $altDG = (abs($len - $len_ua) <= 1) ? $dG_ua - $dG : 0;
-  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt>>>>\n";
+
+  # HARD FILTERS POST------------------------------------------------#
+  if($a[0] eq "I") {
+    next unless($len >= $interStemLimit);
+    next unless($amt >= $interCrossLimit);
+  }
+  #------------------------------------------------------------------#
+  
+  print "$l\t$strA\t$strB\t$dG\t$len\t$amt\t$gcContent\n"; 
+  #  print ">>$dG\n$strA\t$strB\n$seqA\t$seqB\n$len\t$amt>>>>\n";
  
 } # end main loop
 close FORBLAST;
