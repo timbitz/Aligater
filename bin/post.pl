@@ -131,7 +131,7 @@ while(my $l = <>) {
   my($dG, $strA, $strB, $len, $amt) = ("","","","","");
 
   if($RUNRACTIP) {
-    ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007.par");
+    ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "");
 
     # DEPRECATED: for debugging:
     # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
@@ -195,11 +195,10 @@ sub runRactIP {
   $seqA =~ s/T/U/g if($seqA =~ /T/);
   $seqB =~ s/T/U/g if($seqB =~ /T/);
   my $rand = substr(md5_hex(rand), 0, 4);   
-  system("echo \">seqA\n$seqA\" > $tmpPath/$rand\_seqA.fa"); 
-  system("echo \">seqB\n$seqB\" > $tmpPath/$rand\_seqB.fa");
+  system("(echo \">seqA\n$seqA\" > $tmpPath/$rand\_seqA.fa) && (echo \">seqB\n$seqB\" > $tmpPath/$rand\_seqB.fa)"); 
   $param = defined($param) ? "-P $param" : "";
   my(@res) = `ractip $tmpPath/$rand\_seqA.fa $tmpPath/$rand\_seqB.fa -e $param`;
-  system("rm $tmpPath/$rand*");
+  `rm $tmpPath/$rand*`;
   chomp @res;
   my($structA, $structB) = ($res[2], $res[5]); #set structures
   $res[6] =~ /JS\= ([\d\-\.]+)/;
