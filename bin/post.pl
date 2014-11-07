@@ -167,7 +167,7 @@ close FORBLAST;
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   foreach my $db (split(/\,/, $blastDb)) {
     runBlastn($db, "tmp_$rand", $threads, $tmpPath);
-    openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out");
+    openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out", \%toFilter);
   }
   system("rm $tmpPath/tmp_$rand.*");
   
@@ -295,11 +295,11 @@ sub openBlastOutAndRemoveHits {
   while(my $l = <$hndl>) {
     my(@a) = split(/\t/, $l);
     my(@b) = split(/\:/, $a[3]); #split name
-    if($a[8] - $a[7] < 33) {
-      if($a[7] > $b[1] - 8) { next; }
-      if($a[8] < $b[2] + 8) { next; }
+    if($a[8] - $a[7] < 26) {
+      if($a[7] > $b[1] - 6) { next; }
+      if($a[8] < $b[2] + 6) { next; }
     }
-    delete $toFilter{$b[0]};
+    delete $filterHash->{$b[0]};
   }
 }
 
