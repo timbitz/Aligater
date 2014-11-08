@@ -8,6 +8,8 @@
 use warnings;
 use strict;
 
+use Parallel::ForkManager;
+
 use Cwd qw(abs_path);
 use Digest::MD5 qw(md5_hex md5_base64);
 
@@ -25,7 +27,8 @@ my $path = abs_path($0);
 $0 =~ s/^.*\///;
 $path =~ s/\/$0$//;
 
-my $tmpPath = "$path/../tmp";
+mkdir("/tmp/aligater") unless(-e "/tmp/aligater");
+my $tmpPath = "/tmp/aligater";
 my $libPath = "$path/../lib";
 
 my %toFilter;  #main memory use of the program
@@ -93,7 +96,6 @@ sub checkSoft {
 randomSeedRNG(); # srand `time ^ $$ ^ unpack "%L*", `ps axww | gzip`;
 my $rand = substr(md5_hex(rand), 0, 6);
 
-
 ## CHECK IF SOFTWARE IS INSTALLED ------------------------#
 if($RUNBLAST) {
   # check if blastn is installed and BLASTDB is set in ENV;
@@ -109,8 +111,34 @@ if($RUNRACTIP) {
 }
 #---------------------------------------------------------#
 
+## Set up fork manager;
+my $pm = Parallel::ForkManager->new($threads, $tmpPath);
+
+# data structure retrieval and handling
+$pm -> run_on_finish ( # called BEFORE the first call to start()
+  sub {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
+ 
+    # retrieve data structure from child
+    if (defined($data_ref)) {  # children are not forced to send anything
+      my($key, $mid, $val) = @{$data_ref};  # child passed a string reference
+      if($RUNBLAST) {
+        $toFilter{$key} = $val;
+        print FORBLAST "$key\:$mid";
+      } else {
+        print $key;
+      }
+    } else {  # problems occuring will throw a warning
+#      reverb "No message received from child process $pid!\n";
+    }
+  }
+);
+
 # main loop, collect relevant entries and store into memory if --blast
 while(my $l = <>) {
+
+  $pm->start() and next;  # fork to child
+
   chomp($l);
   my(@a) = split(/\t/, $l);
 
@@ -121,9 +149,9 @@ while(my $l = <>) {
 
   # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
-  next if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
-  next if length($seq) < 45; # need at least 22bp on either side.
-  next if $gcContent >= $gcLimit; # greater than limit of gc content
+  $pm->finish if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
+  $pm->finish if length($seq) < 45; # need at least 22bp on either side.
+  $pm->finish if $gcContent >= $gcLimit; # greater than limit of gc content
   #------------------------------------------------------------------#
 
   my($seqA, $seqB) = split(/\_/, $seq); 
@@ -131,19 +159,19 @@ while(my $l = <>) {
   my($dG, $strA, $strB, $len, $amt) = ("","","","","");
 
   if($RUNRACTIP) {
-    ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, "");
+    ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, undef);
 
     # DEPRECATED: for debugging:
     # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
 
     # HARD FILTERS POST RACTIP-----------------------------------------#
     if($a[0] eq "I") {  #perhaps just reset the code to R instead of these hard filters TODO!!
-      next unless($len >= $interStemLimit);
-      next unless($amt >= $interCrossLimit);
+      $pm->finish unless($len >= $interStemLimit);
+      $pm->finish unless($amt >= $interCrossLimit);
     }
     #------------------------------------------------------------------#
   }
-
+  my($key, $mid, $val);
   if($RUNBLAST) { # if we are using blast to filter we need to store ligs in memory
     # loop through each ligation site
     while($seq =~ /\_/g) {
@@ -153,14 +181,19 @@ while(my $l = <>) {
       $ligString =~ s/\_//g;
       my($leftLig, $rightLig) = ( $pos - $leftCoor, $rightCoor - $pos );
       #save read and print for blast
-      $toFilter{"LIG_$."} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
-      print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligString\n";
+#      $toFilter{"LIG_$."} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+      $key = "LIG_$.";
+      $mid = "$leftLig\:$rightLig\n$ligString\n";
+      $val = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+      #print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligString\n";
     }
   } else { # no need to waste memory, lets just print as we go. 
-    print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
+    #print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
+    $key = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
   }
- 
+  $pm->finish(0, [$key, $mid, $val]);
 } # end main loop
+$pm->wait_all_children;
 close FORBLAST;
 
 
@@ -194,11 +227,11 @@ sub runRactIP {
   my($seqA, $seqB, $param) = @_;
   $seqA =~ s/T/U/g if($seqA =~ /T/);
   $seqB =~ s/T/U/g if($seqB =~ /T/);
-  my $rand = substr(md5_hex(rand), 0, 4);   
-  system("(echo \">seqA\n$seqA\" > $tmpPath/$rand\_seqA.fa) && (echo \">seqB\n$seqB\" > $tmpPath/$rand\_seqB.fa)"); 
+  my $rand = substr(md5_hex($.), 0, 4);   
+  system("echo \">seqA\n$seqA\n>seqB\n$seqB\" > $tmpPath/$rand\_seq.fa"); 
   $param = defined($param) ? "-P $param" : "";
-  my(@res) = `ractip $tmpPath/$rand\_seqA.fa $tmpPath/$rand\_seqB.fa -e $param`;
-  `rm $tmpPath/$rand*`;
+  my(@res) = `ractip $tmpPath/$rand\_seq.fa -e $param`;
+  system("rm $tmpPath/$rand*");
   chomp @res;
   my($structA, $structB) = ($res[2], $res[5]); #set structures
   $res[6] =~ /JS\= ([\d\-\.]+)/;
