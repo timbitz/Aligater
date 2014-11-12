@@ -32,6 +32,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 	prepareSmallCoordSQLquery
 	executeCoordSQLquery
 	executeExactCoordSQLquery
+        binFromRangeExtended
 	allBinsFromRangeExtended
         loadUserPassFromHgConf
 ) ] );
@@ -47,6 +48,7 @@ our @EXPORT = qw(
 	prepareSmallCoordSQLquery
         executeCoordSQLquery
         executeExactCoordSQLquery
+	binFromRangeExtended
         allBinsFromRangeExtended
         loadUserPassFromHgConf
 );
@@ -91,8 +93,6 @@ sub useHgLocal {
   my($user, $pass, $mydb, $verbose) = @_;
   $db_host = "localhost";
   unless(defined($user) and defined($pass)) {
-#    $db_user ="hguser";
-#    $db_passwd ="usersarecool";
     die "No User or Pass given to useHgLocal!\n";
   } else {
     $db_user = $user;

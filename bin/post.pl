@@ -58,7 +58,9 @@ GetOptions("gc=f" => \$gcLimit,
            "strict" => \$strictOpt,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
-           "blast" => \$RUNBLAST);
+           "blast" => \$RUNBLAST,
+           "gtf=s" => \$GTFCOORD
+);
 
 #set hard filters
 if($strictOpt) {
