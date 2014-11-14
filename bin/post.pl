@@ -39,6 +39,7 @@ my %toFilter;  #main memory use of the program
 
 my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
+my $GENOMECOORD;
 
 my $blastDb = "human_genomic,other_genomic,nt";
 
@@ -118,8 +119,9 @@ if($RUNRACTIP) {
 my $geneAnno; # = undef
 #  Load GTF/GFF if --gtf=s is set, then assign to GENOME COORDINATES and use for filtering.
 if($GENOMECOORD) {
-  $geneAnno = new GeneAnno;
-  $geneAnno->load_GTF_or_GFF($GENOMECOORD);
+  $geneAnno = new GeneAnnot;
+  $geneAnno->load_GFF_or_GTF($GENOMECOORD);
+#  $geneAnno->printRefFlat();
 }
 ## Done loading GTF.
 

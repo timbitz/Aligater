@@ -69,6 +69,7 @@ sub new {
 #   $self->{"ISO_EXON"}->{transcript_id} = { "chr:start-stop" => frame, .. }
 #   $self->{"ISO_ALIAS"}->{transcript_id} = { /transcript_alias/ => value };
 #   $self->{"ISO_ATTR"}->{transcript_id} = { /!(id or alias)/ => value };
+#   $self->{"ISO_PARENT"}->{transcript_id} = "gene_id"; 
 
 sub load_GFF_or_GTF {
   my($self, $fileName) = @_;
@@ -80,6 +81,7 @@ sub load_GFF_or_GTF {
   my(%ISO_EXON);
   my(%ISO_ALIAS);
   my(%ISO_ATTR);
+  my(%ISO_GENE);
 
   my $GFFhndl = openFileHandle($fileName);
   my($curGene) = "";
@@ -124,6 +126,9 @@ sub load_GFF_or_GTF {
     unless(defined($ISO_ATTR{$thisTrans})) {
       $ISO_ATTR{$thisTrans} = getAttribs($t[8], "^(id|alias)");
     }
+    unless(defined($ISO_GENE{$thisTrans})) {
+      $ISO_GENE{$thisTrans} = $thisGene;
+    }
 
     $GENE_COORD{$thisGene}->[1] = min($GENE_COORD{$thisGene}->[1], $t[3]);
     $GENE_COORD{$thisGene}->[2] = max($GENE_COORD{$thisGene}->[2], $t[4]);
@@ -139,7 +144,7 @@ sub load_GFF_or_GTF {
   $self->{"ISO_EXON"} = \%ISO_EXON;
   $self->{"ISO_ALIAS"} = \%ISO_ALIAS;
   $self->{"ISO_ATTR"} = \%ISO_ATTR;
-
+  $self->{"ISO_PARENT"} = \%ISO_GENE;
 }
 
 ###########################################################################################
@@ -149,7 +154,7 @@ sub load_GFF_or_GTF {
 ###
 
 sub printGTF {
-
+  ### TO DO
 }
 
 # TO ACCESS: $SELF
@@ -161,6 +166,7 @@ sub printGTF {
 # #   $self->{"ISO_EXON"}->{transcript_id} = { "chr:start-stop" => frame, .. }
 # #   $self->{"ISO_ALIAS"}->{transcript_id} = { /transcript_alias/ => value };
 # #   $self->{"ISO_ATTR"}->{transcript_id} = { /!(id or alias)/ => value };
+# #   $self->{"ISO_PARENT"}->{transcript_id} = "gene_id";
 sub printRefFlat {
   my($self) = shift;
 
@@ -207,6 +213,35 @@ sub printRefFlat {
       print "$bin\t$trans\t$chr\t$strand\t$start\t$stop\t$start\t$stop\t";
       print "$exonCount\t$exStList\t$exEnList\t0\t$trans\tnone\tnone\t$exFrList\n";
       
+    }
+  }
+}
+
+### toGenomeCoord -- convert transcript coordinate to genome.
+### returns array ref in the form of [ chrom, genome_coord, strand ];
+sub toGenomeCoord {
+  my($self, $tranId, $coord) = @_;
+  my $geneId = $self->{"ISO_PARENT"}->{$tranId};
+  return unless defined $geneId;
+  my $strand = $self->{"GENE_ISOS"}->{$geneId}->{$tranId};
+  return unless defined $strand;
+  my(@exons) = sort { ($strand eq "+") ? $a cmp $b : $b cmp $a } keys %{$self->{"ISO_EXON"}->{$tranId}};
+  return unless scalar(@exons) > 0;
+  my $cur = 0; # running total
+  my $ret;
+  foreach my $exon (@exons) {
+    my($c, $s, $e) = parseRegion($exon);
+    # check if coord is within this exon
+    if(($e - $s) + $cur > $coord) {
+      if($strand eq "+") {
+        $ret = ($coord - $cur) + $s;
+      } else { #minus strand, trace backwards
+        $ret = $e - ($coord - $cur);
+      }
+      return unless defined $ret;  # RETURN
+      return [$c, $ret, $strand];  # HERE
+    } else {
+      $cur += $s - $e;
     }
   }
 }
