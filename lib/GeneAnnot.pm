@@ -81,10 +81,10 @@ sub load_GFF_or_GTF {
   my(%ISO_ALIAS);
   my(%ISO_ATTR);
 
-  open(GFF, $fileName) or die "cannot open gff3 file $fileName!\n";
+  my $GFFhndl = openFileHandle($fileName);
   my($curGene) = "";
   my($curIso) = "";
-  while(my $l = <GFF>) {
+  while(my $l = <$GFFhndl>) {
     chomp($l);
     if($l =~ /^#/) { next; }
     my(@t) = split(/\t/, $l);
@@ -129,7 +129,7 @@ sub load_GFF_or_GTF {
     $GENE_COORD{$thisGene}->[2] = max($GENE_COORD{$thisGene}->[2], $t[4]);
 
   }
-  close GFF;
+  close $GFFhdnl;
 
 
   $self->{"GENE_ISOS"} = \%GENE_ISOS;
