@@ -62,7 +62,7 @@ sub new {
 #
 # TO ACCESS: $SELF
 #
-#   $self->{"GENE_ISOS"}->{gene_id}->{transcript_id} = strand;
+#   $self->{"GENE_CHILD"}->{gene_id}->{transcript_id} = strand;
 #   $self->{"GENE_ALIAS"}->{gene_id} = { /gene_alias/ => value };
 #   $self->{"GENE_COORD"}->{gene_id} = [ chr, start, stop, strand ];
 #
@@ -74,7 +74,7 @@ sub new {
 sub load_GFF_or_GTF {
   my($self, $fileName) = @_;
 
-  my(%GENE_ISOS);
+  my(%GENE_CHILD);
   my(%GENE_ALIAS);
   my(%GENE_COORD);
 
@@ -101,9 +101,9 @@ sub load_GFF_or_GTF {
     my($thisTrans) = $1;
 
     if($thisGene ne $curGene) { # new gene...
-      unless(defined($GENE_ISOS{$thisGene})) {
-	# $GENE_ISOS{gene}->{transcript} = strand;
-        $GENE_ISOS{$thisGene} = { $thisTrans => $t[6] }
+      unless(defined($GENE_CHILD{$thisGene})) {
+	# $GENE_CHILD{gene}->{transcript} = strand;
+        $GENE_CHILD{$thisGene} = { $thisTrans => $t[6] }
       }
       $GENE_ALIAS{$thisGene} = getAttribs($t[8], "gene_alias");
       $GENE_COORD{$thisGene} = [ $t[0], $t[3], $t[4], $t[6] ];
@@ -112,7 +112,7 @@ sub load_GFF_or_GTF {
     } 
 
     ## Add isoform to gene.
-    $GENE_ISOS{$thisGene}->{$thisTrans} = $t[6];
+    $GENE_CHILD{$thisGene}->{$thisTrans} = $t[6];
 
     if(defined($ISO_EXON{$thisTrans})) {
       $ISO_EXON{$thisTrans}->{"$t[0]\:$t[3]\-$t[4]"} = $t[7];
@@ -137,7 +137,7 @@ sub load_GFF_or_GTF {
   close $GFFhndl;
 
 
-  $self->{"GENE_ISOS"} = \%GENE_ISOS;
+  $self->{"GENE_CHILD"} = \%GENE_CHILD;
   $self->{"GENE_ALIAS"} = \%GENE_ALIAS;
   $self->{"GENE_COORD"} = \%GENE_COORD;
 
@@ -159,7 +159,7 @@ sub printGTF {
 
 # TO ACCESS: $SELF
 # #
-# #   $self->{"GENE_ISOS"}->{gene_id}->{transcript_id} = strand;
+# #   $self->{"GENE_CHILD"}->{gene_id}->{transcript_id} = strand;
 # #   $self->{"GENE_ALIAS"}->{gene_id} = { /gene_alias/ => value };
 # #   $self->{"GENE_COORD"}->{gene_id} = [ chr, start, stop, strand ];
 # #
@@ -186,7 +186,7 @@ sub printRefFlat {
     return($a[0]);
   };
 
-  foreach my $gene (keys %{$self->{"GENE_ISOS"}}) {
+  foreach my $gene (keys %{$self->{"GENE_CHILD"}}) {
     my($chr, $start, $stop, $strand) = parseRegion($self->{"GENE_COORD"}->{$gene});
     my(@aliasKeys) = sort keys %{$self->{"GENE_ALIAS"}->{$gene}};
     my($alias);
@@ -195,7 +195,7 @@ sub printRefFlat {
     } else {
       $alias = $gene;
     }
-    foreach my $trans (keys %{$self->{"GENE_ISOS"}->{$gene}}) {
+    foreach my $trans (keys %{$self->{"GENE_CHILD"}->{$gene}}) {
       my($exStList, $exEnList, $exFrList) = ("", "", "");
       my $exonCount = 0;
       foreach my $exonCoord (sort { $a cmp $b } keys %{$self->{"ISO_EXON"}->{$trans}} ) {
@@ -223,7 +223,7 @@ sub toGenomeCoord {
   my($self, $tranId, $coord) = @_;
   my $geneId = $self->{"ISO_PARENT"}->{$tranId};
   return unless defined $geneId;
-  my $strand = $self->{"GENE_ISOS"}->{$geneId}->{$tranId};
+  my $strand = $self->{"GENE_CHILD"}->{$geneId}->{$tranId};
   return unless defined $strand;
   my(@exons) = sort { ($strand eq "+") ? $a cmp $b : $b cmp $a } keys %{$self->{"ISO_EXON"}->{$tranId}};
   return unless scalar(@exons) > 0;
