@@ -21,6 +21,7 @@ use Getopt::Long;
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
+use GeneAnnot qw(:all);
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -59,7 +60,7 @@ GetOptions("gc=f" => \$gcLimit,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
-           "gtf=s" => \$GTFCOORD
+           "gtf=s" => \$GENOMECOORD
 );
 
 #set hard filters
@@ -112,6 +113,15 @@ if($RUNRACTIP) {
   explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
 }
 #---------------------------------------------------------#
+
+my $geneAnno; # = undef
+#  Load GTF/GFF if --gtf=s is set, then assign to GENOME COORDINATES and use for filtering.
+if($GENOMECOORD) {
+  $geneAnno = new GeneAnno;
+  $geneAnno->load_GTF_or_GFF($GENOMECOORD);
+}
+## Done loading GTF.
+
 
 ## Set up fork manager;
 my $pm = Parallel::ForkManager->new($threads, $tmpPath);

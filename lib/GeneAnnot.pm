@@ -129,7 +129,7 @@ sub load_GFF_or_GTF {
     $GENE_COORD{$thisGene}->[2] = max($GENE_COORD{$thisGene}->[2], $t[4]);
 
   }
-  close $GFFhdnl;
+  close $GFFhndl;
 
 
   $self->{"GENE_ISOS"} = \%GENE_ISOS;
@@ -163,7 +163,23 @@ sub printGTF {
 # #   $self->{"ISO_ATTR"}->{transcript_id} = { /!(id or alias)/ => value };
 sub printRefFlat {
   my($self) = shift;
-  
+
+  #internal subroutines
+  my $addToBlank = sub {
+    my($str, $toAdd) = @_;
+    if($toAdd eq ".") { $toAdd = -1; }
+    if($str eq "") { return($toAdd); }
+    else {
+      return("$str\,$toAdd");
+    }
+  };
+  my $parseEns = sub {
+    my $id = shift;
+    unless($id =~ /^ENS/) { return($id); }
+    my(@a) = split(/\./, $id);
+    return($a[0]);
+  };
+
   foreach my $gene (keys %{$self->{"GENE_ISOS"}}) {
     my($chr, $start, $stop, $strand) = parseRegion($self->{"GENE_COORD"}->{$gene});
     my(@aliasKeys) = sort keys %{$self->{"GENE_ALIAS"}->{$gene}};
@@ -176,7 +192,7 @@ sub printRefFlat {
     foreach my $trans (keys %{$self->{"GENE_ISOS"}->{$gene}}) {
       my($exStList, $exEnList, $exFrList) = ("", "", "");
       my $exonCount = 0;
-      foreach my $exonCoord (keys %{$self->{"ISO_EXON"}->{$trans}} ) {
+      foreach my $exonCoord (sort { $a cmp $b } keys %{$self->{"ISO_EXON"}->{$trans}} ) {
         my($frame) = $self->{"ISO_EXON"}->{$trans}->{$exonCoord};
         my($c, $s, $e) = parseRegion($exonCoord);
         $exStList = $addToBlank->($exStList, $s);
@@ -192,20 +208,6 @@ sub printRefFlat {
       print "$exonCount\t$exStList\t$exEnList\t0\t$trans\tnone\tnone\t$exFrList\n";
       
     }
-  }
-  my $addToBlank = sub {
-    my($str, $toAdd) = @_;
-    if($toAdd eq ".") { $toAdd = -1; }
-    if($str eq "") { return($toAdd); }
-    else {
-      return("$str\,$toAdd");
-    }
-  }
-  my $parseEns = sub {
-    my $id = shift;
-    unless($id =~ /^ENS/) { return($id); }
-    my(@a) = split(/\./, $id);
-    return($a[0]);
   }
 }
 
