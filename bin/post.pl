@@ -18,10 +18,11 @@ use lib "$FindBin::Bin/../lib";
 
 use Getopt::Long;
 
+# from ../lib
+use GeneAnnot; # oop
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
-use GeneAnnot qw(:all);
 
 # INITIALIZE
 my $path = abs_path($0);
