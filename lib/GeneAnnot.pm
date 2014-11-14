@@ -11,6 +11,7 @@ use DBI;
 
 use CoordBasics qw(:all);
 use FuncBasics qw(:all);
+use hgSQLBasics qw(binFromRangeExtended);
  
 require Exporter; 
  
@@ -178,20 +179,21 @@ sub printRefFlat {
       foreach my $exonCoord (keys %{$self->{"ISO_EXON"}->{$trans}} ) {
         my($frame) = $self->{"ISO_EXON"}->{$trans}->{$exonCoord};
         my($c, $s, $e) = parseRegion($exonCoord);
-        $exStList = addToBlank($exStList, $s);
-        $exEnList = addToBlank($exEnList, $e);
-        $exFrList = addToBlank($exFrList, $frame);
+        $exStList = $addToBlank->($exStList, $s);
+        $exEnList = $addToBlank->($exEnList, $e);
+        $exFrList = $addToBlank->($exFrList, $frame);
         $exonCount++;
       }
 
-      $trans = parseEns($trans);
-      $alias = parseEns($alias);
-      print "1\t$trans\t$chr\t$strand\t$start\t$stop\t$start\t$stop\t";
+      $trans = $parseEns->($trans);
+      $alias = $parseEns->($alias);
+      my $bin = binFromRangeExtended($start, $stop);
+      print "$bin\t$trans\t$chr\t$strand\t$start\t$stop\t$start\t$stop\t";
       print "$exonCount\t$exStList\t$exEnList\t0\t$trans\tnone\tnone\t$exFrList\n";
       
     }
   }
-  sub addToBlank {
+  my $addToBlank = sub {
     my($str, $toAdd) = @_;
     if($toAdd eq ".") { $toAdd = -1; }
     if($str eq "") { return($toAdd); }
@@ -199,7 +201,7 @@ sub printRefFlat {
       return("$str\,$toAdd");
     }
   }
-  sub parseEns {
+  my $parseEns = sub {
     my $id = shift;
     unless($id =~ /^ENS/) { return($id); }
     my(@a) = split(/\./, $id);
