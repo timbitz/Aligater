@@ -240,6 +240,8 @@ sub getHybridFormat {
 
   my $refPositions = $hyb;
   $refPositions =~ s/:/,/g;
+  my $genomePositions = $hyb;
+  $genomePositions =~ s/:/,/g;
   my $alnLengths = $refPositions;
 
   my $ligSitePos = "";
@@ -256,6 +258,10 @@ sub getHybridFormat {
     my $refPos = $alnHash->{$id}->[1];  #FIX THIS
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
+
+    my($genomeChr, $genomePos);
+    ($genomeChr, $genomePos) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
+    
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
@@ -269,6 +275,7 @@ sub getHybridFormat {
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
+    $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeChr\:$genomePos/;
     $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
 
     # make read sequence structure;
