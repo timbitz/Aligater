@@ -19,7 +19,7 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 # from ../lib
-use GeneAnnot; # oop
+use GeneAnnot; # oop gtf/gff support
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
@@ -121,7 +121,7 @@ my $geneAnno; # = undef
 if($GENOMECOORD) {
   $geneAnno = new GeneAnnot;
   $geneAnno->load_GFF_or_GTF($GENOMECOORD);
-#  $geneAnno->printRefFlat();
+#  $geneAnno->printRefFlat(); #for debugging/testing IGNORE
 }
 ## Done loading GTF.
 

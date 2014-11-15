@@ -21,6 +21,7 @@ use lib "$FindBin::Bin/../lib";
 
 use Getopt::Long;
 
+use GeneAnnot; # oop
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
 use SequenceBasics qw(maskstr);
@@ -29,6 +30,7 @@ our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
 
 our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
+our $GENEANNO;  # GeneAnnot object if --gtf=s is used to specify genome coordinates
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -41,8 +43,10 @@ my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 my $base64Flag = 0;
 my $suppressAlnFlag = 0;
 
+my $gtfFile; #undef by default
+
 GetOptions("o=s" => \$outputCore, "base" => \$base64Flag,
-           "noaln" => \$suppressAlnFlag);
+           "noaln" => \$suppressAlnFlag, "gtf=s" => \$gtfFile);
 
 my $nonHybHndl;
 my $hybHndl; # alignment output filehandles.
@@ -63,6 +67,13 @@ sub reverb {
   chomp($str);
   print STDERR "[$0]: ($.) $str\n";
 }
+
+## Load GTF/GFF file if defined;
+if(defined($gtfFile)) {
+  $GENEANNO = new GeneAnnot;
+  $GENEANNO->load_GFF_or_GTF($gtfFile);
+}
+# done loading GTF
 
 # set iteraters
 # this stores the current set of alignments
