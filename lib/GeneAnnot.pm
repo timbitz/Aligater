@@ -225,7 +225,9 @@ sub toGenomeCoord {
   return unless defined $geneId;
   my $strand = $self->{"GENE_CHILD"}->{$geneId}->{$tranId};
   return unless defined $strand;
-  my(@exons) = sort { ($strand eq "+") ? $a cmp $b : $b cmp $a } keys %{$self->{"ISO_EXON"}->{$tranId}};
+  my(@exons) = sort { 
+    ($strand eq "+") ? coorMidpoint($a) <=> coorMidpoint($b) : coorMidpoint($b) <=> coorMidpoint($a) 
+                    } keys %{$self->{"ISO_EXON"}->{$tranId}};
   return unless scalar(@exons) > 0;
   my $cur = 0; # running total
   my $ret;
@@ -241,7 +243,7 @@ sub toGenomeCoord {
       return unless defined $ret;  # RETURN
       return [$c, $ret, $strand];  # HERE
     } else {
-      $cur += $s - $e;
+      $cur += ($e - $s) + 1;
     }
   }
 }
