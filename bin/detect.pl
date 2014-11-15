@@ -243,8 +243,8 @@ sub getHybridFormat {
 
   my $refPositions = $hyb;
   $refPositions =~ s/:/,/g;
-  my $genomePositions = $hyb;
-  $genomePositions =~ s/:/,/g;
+  my $genPositions = $hyb;
+  $genPositions =~ s/:/,/g;
   my $alnLengths = $refPositions;
 
   my $ligSitePos = "";
@@ -264,8 +264,8 @@ sub getHybridFormat {
 
     # set genomic position if possible
     my($genomeChr, $genomePos);
-    ($genomeChr, $genomePos) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
-    my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos" : "NA";    
+    ($genomeChr, $genomePos, $genomeRan) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
+    my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
 
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
@@ -280,7 +280,7 @@ sub getHybridFormat {
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
-    $genomePositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeCoord/;
+    $genPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeCoord/;
     $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
 
     # make read sequence structure;
@@ -295,7 +295,7 @@ sub getHybridFormat {
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
-  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genomePositions); 
+  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genPositions); 
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\n";
 }
@@ -342,6 +342,9 @@ sub getHybridCode {
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
         $overlap++ if coorOverlap($aCoord, $bCoord);
       }
+    }
+    if($overlap == $compNum) { # then this is the same locus
+      $code = "S";
     }
   }
   return($code, $geneFamStruc);
