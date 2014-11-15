@@ -259,9 +259,11 @@ sub getHybridFormat {
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
 
+    # set genomic position if possible
     my($genomeChr, $genomePos);
     ($genomeChr, $genomePos) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
-    
+    my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos" : "NA";    
+
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
@@ -275,7 +277,7 @@ sub getHybridFormat {
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
-    $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeChr\:$genomePos/;
+    $genomePositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeCoord/;
     $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
 
     # make read sequence structure;
@@ -290,14 +292,14 @@ sub getHybridFormat {
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
-  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct); 
+  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genomePositions); 
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
 sub getHybridCode {
-  my($chars, $genes) = @_;
+  my($chars, $genes, $genomePos) = @_;
   my(@c) = split(/\:/, $chars);
   my(@g) = split(/\:/, $genes);
   my $code = "S"; # intra molecular by default.
@@ -320,6 +322,14 @@ sub getHybridCode {
   }
   if($chars =~ /B/) {  #possibly inter-molecular
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
+  }
+  # check overlap of genomePos
+  if($genomePos ne "NA") {
+    my(@pos) = split(/\,/, $genomePos);
+    my $overlap = 1;
+    for(my $i=0; $i < scalar(@pos); $i++) {
+
+    }
   }
   return($code, $geneFamStruc);
 }
