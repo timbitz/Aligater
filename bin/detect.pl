@@ -326,10 +326,14 @@ sub getHybridCode {
   # check overlap of genomePos
   if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
-    my $overlap = 1;
+    my $overlap = 0;
+    my $naNum = () = $str =~ /NA/g; # i hate this idiom, but whatever its one line.
+    my $compNum = scalar(@pos) - $naNum;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
+      next if $pos[$i] eq "NA";
       for(my $j = $i+1; $j < scalar(@pos); $j++) {
-
+        next if $pos[$j] eq "NA";
+        
       }
     }
   }

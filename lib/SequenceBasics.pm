@@ -98,6 +98,7 @@ sub getSeq {
   return($seq);
 }
 
+
 sub maxRegex {
   my($str, $regex) = @_;
   my($maxLen) = 0;
