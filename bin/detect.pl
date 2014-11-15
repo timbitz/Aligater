@@ -24,7 +24,10 @@ use Getopt::Long;
 use GeneAnnot; # oop
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
+use CoordBasics qw(coorOverlap);
 use SequenceBasics qw(maskstr);
+
+our $COORDEXPAND = 1000;
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
@@ -331,9 +334,13 @@ sub getHybridCode {
     my $compNum = scalar(@pos) - $naNum;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
       next if $pos[$i] eq "NA";
+      my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
+      my $aCoord = [$aChr, $aPos-$COORDEXPAND, $aPos+$COORDEXPAND, $aRan];
       for(my $j = $i+1; $j < scalar(@pos); $j++) {
         next if $pos[$j] eq "NA";
-        
+        my($bChr, $bPos, $bRan) = split(/\:/, $pos[$j]);
+        my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
+        $overlap++ if coorOverlap($aCoord, $bCoord);
       }
     }
   }
