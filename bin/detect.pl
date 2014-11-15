@@ -324,11 +324,13 @@ sub getHybridCode {
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
   }
   # check overlap of genomePos
-  if($genomePos ne "NA") {
+  if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
     my $overlap = 1;
-    for(my $i=0; $i < scalar(@pos); $i++) {
+    for(my $i=0; $i < scalar(@pos) - 1; $i++) {
+      for(my $j = $i+1; $j < scalar(@pos); $j++) {
 
+      }
     }
   }
   return($code, $geneFamStruc);
