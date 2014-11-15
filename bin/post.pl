@@ -19,7 +19,6 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 # from ../lib
-use GeneAnnot; # oop gtf/gff support
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
@@ -61,8 +60,7 @@ GetOptions("gc=f" => \$gcLimit,
            "strict" => \$strictOpt,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
-           "blast" => \$RUNBLAST,
-           "gtf=s" => \$GENOMECOORD
+           "blast" => \$RUNBLAST
 );
 
 #set hard filters
@@ -115,15 +113,6 @@ if($RUNRACTIP) {
   explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
 }
 #---------------------------------------------------------#
-
-my $geneAnno; # = undef
-#  Load GTF/GFF if --gtf=s is set, then assign to GENOME COORDINATES and use for filtering.
-if($GENOMECOORD) {
-  $geneAnno = new GeneAnnot;
-  $geneAnno->load_GFF_or_GTF($GENOMECOORD);
-#  $geneAnno->printRefFlat(); #for debugging/testing IGNORE
-}
-## Done loading GTF.
 
 
 ## Set up fork manager;
