@@ -74,7 +74,7 @@ sub reverb {
 ## Load GTF/GFF file if defined;
 if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
-  $GENEANNO->load_GFF_or_GTF($gtfFile);
+  $GENEANNO->load_GFF_or_GTF($gtfFile, 1);
 }
 # done loading GTF
 
@@ -263,7 +263,7 @@ sub getHybridFormat {
     my $length = $alnHash->{$id}->[2];
 
     # set genomic position if possible
-    my($genomeChr, $genomePos);
+    my($genomeChr, $genomePos, $genomeRan);
     ($genomeChr, $genomePos, $genomeRan) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
 
@@ -297,7 +297,7 @@ sub getHybridFormat {
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genPositions); 
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
-  print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\n";
+  print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
@@ -330,7 +330,7 @@ sub getHybridCode {
   if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
     my $overlap = 0;
-    my $naNum = () = $str =~ /NA/g; # i hate this idiom, but whatever its one line.
+    my $naNum = () = $genomePos =~ /NA/g; # i hate this idiom, but whatever its one line.
     my $compNum = scalar(@pos) - $naNum;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
       next if $pos[$i] eq "NA";
@@ -343,7 +343,7 @@ sub getHybridCode {
         $overlap++ if coorOverlap($aCoord, $bCoord);
       }
     }
-    if($overlap == $compNum) { # then this is the same locus
+    if($overlap == $compNum and $overlap > 0) { # then this is the same locus
       $code = "S";
     }
   }

@@ -72,7 +72,9 @@ sub new {
 #   $self->{"ISO_PARENT"}->{transcript_id} = "gene_id"; 
 
 sub load_GFF_or_GTF {
-  my($self, $fileName) = @_;
+  my($self, $fileName, $ignoreDecimal) = @_;
+
+  $ignoreDecimal = defined($ignoreDecimal) and $ignoreDecimal ? 1 : 0;
 
   my(%GENE_CHILD);
   my(%GENE_ALIAS);
@@ -99,6 +101,9 @@ sub load_GFF_or_GTF {
     my($thisGene) = $1;
     $t[-1] =~ /transcript_id[\s\"\=]+(\S+)[\s\"]+\;/;
     my($thisTrans) = $1;
+
+    $thisGene =~ s/\.\d+$//g if $ignoreDecimal;
+    $thisTrans =~ s/\.\d+$//g if $ignoreDecimal;
 
     if($thisGene ne $curGene) { # new gene...
       unless(defined($GENE_CHILD{$thisGene})) {
