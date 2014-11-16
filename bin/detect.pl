@@ -24,7 +24,7 @@ use Getopt::Long;
 use GeneAnnot; # oop
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
-use CoordBasics qw(coorOverlap);
+use CoordBasics qw(coorOverlap parseRegion);
 use SequenceBasics qw(maskstr);
 
 our $COORDEXPAND = 1000;
@@ -258,13 +258,13 @@ sub getHybridFormat {
     my $id = $a[$i];
     my $char = substr($alpha, scalar keys %used, 1);
     my($ensTran, $ensGene, $geneSym, $biotype) = split(/\_/, $alnHash->{$id}->[5]);
-    my $refPos = $alnHash->{$id}->[1];  #FIX THIS
+    my $refPos = $alnHash->{$id}->[1];  #FIX THIS  TODO
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
 
     # set genomic position if possible
-    my($genomeChr, $genomePos, $genomeRan);
-    ($genomeChr, $genomePos, $genomeRan) = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
+    my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
+    my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
     my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
 
     # set previously used char for same gene symbol

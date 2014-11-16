@@ -68,6 +68,7 @@ our $VERSION = '0.01';
 # RETURN array of elements 
 sub parseRegion { 
   my $reg  = shift; 
+  return unless defined $reg;
   if(ref($reg)) { return(@{$reg}); } 
   my(@a) = split(/\:/, $reg); 
   my(@b) = split(/\-/, $a[1]); 
