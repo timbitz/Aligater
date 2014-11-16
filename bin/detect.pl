@@ -258,7 +258,7 @@ sub getHybridFormat {
     my $id = $a[$i];
     my $char = substr($alpha, scalar keys %used, 1);
     my($ensTran, $ensGene, $geneSym, $biotype) = split(/\_/, $alnHash->{$id}->[5]);
-    my $refPos = $alnHash->{$id}->[1];  #FIX THIS  TODO
+    my $refPos = $alnHash->{$id}->[6]; 
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
 
@@ -330,14 +330,14 @@ sub getHybridCode {
   if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
     my $overlap = 0;
-    my $naNum = () = $genomePos =~ /NA/g; # i hate this idiom, but whatever its one line.
-    my $compNum = scalar(@pos) - $naNum;
+    my $compNum = 0;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
       next if $pos[$i] eq "NA";
       my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
       my $aCoord = [$aChr, $aPos-$COORDEXPAND, $aPos+$COORDEXPAND, $aRan];
       for(my $j = $i+1; $j < scalar(@pos); $j++) {
         next if $pos[$j] eq "NA";
+        $compNum++;
         my($bChr, $bPos, $bRan) = split(/\:/, $pos[$j]);
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
         $overlap++ if coorOverlap($aCoord, $bCoord);
