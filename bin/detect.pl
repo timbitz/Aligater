@@ -296,6 +296,7 @@ sub getHybridFormat {
   }
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genPositions); 
+  $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
 }
