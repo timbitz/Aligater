@@ -145,8 +145,11 @@ while(my $l = <>) {
   #discard if - strand and strand specific?
   next if($STRAND_SPECIFIC and $strand eq "-");
   my($start, $len) = alignPosInRead($a[5]);
-  #if - strand, reverse position TODO
   my $end = $start + $len;
+  if($strand eq "-") { #if - strand, reverse position
+    $start = length($a[9]) - $end; # TODO TEST
+    $end = $start + $len;
+  }
   my $optHash = parseOpFields(\@a); 
   my $aScore = $optHash->{"AS"};
   #my $numMiss = $optHash->{"NM"};   
@@ -259,18 +262,21 @@ sub getHybridFormat {
     my $refPos = $alnHash->{$id}->[6]; 
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
-    
-   #TODO add - strand mapping compatibility.
+    my $strand = getStrand($alnHash->{$id}->[4]); # TODO TEST
 
     # set genomic position if possible
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
+    # if - strand alignment, reverse genomeRan
+    $genomeRan = ($genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
     my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
 
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
     }
+    $char = "-$char" if $strand eq "-"; # mark the antisense structure; #TODO TEST
+
     # substitute hyb number for char or sym etc;
     $charStruct    =~ s/\b(?<!\-)$id(?!\-)\b/$char/g;
     $geneSymStruct =~ s/\b(?<!\-)$id(?!\-)\b/$geneSym/g;
