@@ -25,12 +25,13 @@ use GeneAnnot; # oop
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
 use CoordBasics qw(coorOverlap parseRegion);
-use SequenceBasics qw(maskstr);
+use SequenceBasics qw(maskstr revComp);
 
 our $COORDEXPAND = 1000; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
+our $ANTISENSE_PENALTY = -24; #so should this
 
 our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
 our $GENEANNO;  # GeneAnnot object if --gtf=s is used to specify genome coordinates
@@ -206,7 +207,9 @@ sub processAlignRec {
         my($score, $start, $len);
         explode "$a and $b are not defined in alnHash!" unless 
 		defined($alnHash->{$a}) and defined($alnHash->{$b}); 
-        $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY;
+        my $antiPenalty = ($alnHash->{$a}->[4] ne "hybrid" and getStrand($alnHash->{$a}->[4]) eq "-") ? $ANTISENSE_PENALTY : 0;
+        $antiPenalty += ($alnHash->{$b}->[4] ne "hybrid" and getStrand($alnHash->{$b}->[4]) eq "-") ? $ANTISENSE_PENALTY : 0; #TODO TEST;
+        $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY + $antiPenalty;
         $start = $alnHash->{$a}->[1];
         $len = ($alnHash->{$b}->[1] + $alnHash->{$b}->[2]) - $alnHash->{$a}->[1];
         my $readName = $alnHash->{$a}->[3];
@@ -253,6 +256,7 @@ sub getHybridFormat {
   my $alnScore = $alnHash->{$hyb}->[0];
 
   my $readSeq = $alnHash->{1}->[12];  # get raw read sequence in forward orientation
+  $readSeq = revComp($readSeq) if (getStrand($alnHash->{1}->[4]) eq "-"); # TEST TODO
 
   # convert chimeric read structures from gene symbol-> segment character
   for(my $i=0; $i < scalar(@a); $i++) {
@@ -268,7 +272,7 @@ sub getHybridFormat {
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
     # if - strand alignment, reverse genomeRan
-    $genomeRan = ($genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
+    $genomeRan = (defined($genomeRan) and $genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
     my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
 
     # set previously used char for same gene symbol
@@ -333,6 +337,7 @@ sub getHybridCode {
   if($chars =~ /B/) {  #possibly inter-molecular
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
   }
+  $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
   # check overlap of genomePos
   if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
@@ -350,8 +355,8 @@ sub getHybridCode {
         $overlap++ if coorOverlap($aCoord, $bCoord);
       }
     }
-    if($overlap == $compNum and $overlap > 0) { # then this is the same locus
-      $code = "S";
+    if($overlap == $compNum and $overlap > 0 and $code ne "A") { # then this is the same locus
+      $code = "S"; #TODO TEST
     }
   }
   return($code, $geneFamStruc);
