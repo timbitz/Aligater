@@ -27,7 +27,7 @@ use FuncBasics qw(isInt shove openFileHandle);
 use CoordBasics qw(coorOverlap parseRegion);
 use SequenceBasics qw(maskstr);
 
-our $COORDEXPAND = 1000;
+our $COORDEXPAND = 1000; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.
 our $HYBRID_PENALTY = -24; # this should be optimized.
@@ -48,8 +48,11 @@ my $suppressAlnFlag = 0;
 
 my $gtfFile; #undef by default
 
-GetOptions("o=s" => \$outputCore, "base" => \$base64Flag,
-           "noaln" => \$suppressAlnFlag, "gtf=s" => \$gtfFile);
+GetOptions("o=s" => \$outputCore, 
+           "base" => \$base64Flag,
+           "noaln" => \$suppressAlnFlag,
+           "noanti" => \$STRAND_SPECIFIC, #TODO
+           "gtf=s" => \$gtfFile);
 
 my $nonHybHndl;
 my $hybHndl; # alignment output filehandles.
@@ -121,7 +124,7 @@ while(my $l = <>) {
         my(@alns) = split(/\:/, $bestK);
         foreach my $al (@alns) {
           my $aRef = $alnHash->{$al};
-          my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
+          my $samOutput = join("\t", @$aRef[3 .. $#$aRef]); #TODO if $gtfFile convert sam to genomic
           print $hybHndl "$samOutput\n" unless $suppressAlnFlag;
         }
       } else { #non-chimeric read
@@ -138,11 +141,12 @@ while(my $l = <>) {
 
   # process current read.
   explode "Invalid CIGAR format!" unless isCIGAR($a[5]); 
-  my($start, $len) = alignPosInRead($a[5]);
-  my $end = $start + $len;
   my $strand = getStrand($a[1]); 
   #discard if - strand and strand specific?
   next if($STRAND_SPECIFIC and $strand eq "-");
+  my($start, $len) = alignPosInRead($a[5]);
+  #if - strand, reverse position TODO
+  my $end = $start + $len;
   my $optHash = parseOpFields(\@a); 
   my $aScore = $optHash->{"AS"};
   #my $numMiss = $optHash->{"NM"};   
@@ -150,12 +154,6 @@ while(my $l = <>) {
   # if same start/end exists.. take best;
   my $curAln = shove([$aScore, $start, $len], @a);  #???
 
-# Deprecated.
-#  if(!defined($seHash->{"$start\:$end"}) or 
-#     alignCmp($curAln, $alnHash->{ $seHash->{"$start\:$end"} }) > 0) {
-#    $seHash->{"$start\:$end"} = $curCount;
-#  } else { next; } # redundant alignment with lower rank
- 
   # add start and end records.
   $sHash->{$start} = shove($sHash->{$start}, $curCount);
   $eHash->{$end} = shove($eHash->{$end}, $curCount);
@@ -261,6 +259,8 @@ sub getHybridFormat {
     my $refPos = $alnHash->{$id}->[6]; 
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
+    
+   #TODO add - strand mapping compatibility.
 
     # set genomic position if possible
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
