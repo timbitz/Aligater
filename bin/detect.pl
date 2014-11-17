@@ -29,7 +29,7 @@ use SequenceBasics qw(maskstr revComp);
 
 our $COORDEXPAND = 1000; # this is the buffer range for overlapping genomic loci
 
-our $STRAND_SPECIFIC = 1; # transcriptome mapping.
+our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMMENDED!
 our $HYBRID_PENALTY = -24; # this should be optimized.
 our $ANTISENSE_PENALTY = -24; #so should this
 
@@ -48,11 +48,13 @@ my $base64Flag = 0;
 my $suppressAlnFlag = 0;
 
 my $gtfFile; #undef by default
+my $geneFamFile;
 
 GetOptions("o=s" => \$outputCore, 
            "base" => \$base64Flag,
            "noaln" => \$suppressAlnFlag,
            "noanti" => \$STRAND_SPECIFIC, #TODO
+           "gfam=s" => \$geneFamFile,
            "gtf=s" => \$gtfFile);
 
 my $nonHybHndl;
@@ -81,6 +83,20 @@ if(defined($gtfFile)) {
   $GENEANNO->load_GFF_or_GTF($gtfFile, 1);
 }
 # done loading GTF
+
+# load gene family file if possible
+if(defined($geneFamFile)) {
+  my $geneHndl = openFileHandle($geneFamFile);
+  while(my $l = <$geneHndl>) {
+    next if $l =~ /^#/;
+    chomp $l;
+    my(@a) = split(/\t/, $l);
+    explode "Improper gene family file format!" unless defined($a[0]) and defined($a[1]);
+    $GENEFAM{$a[1]} = $a[0];
+  }
+  close $geneHndl;
+}
+# done loading gene family file
 
 # set iteraters
 # this stores the current set of alignments
