@@ -33,7 +33,7 @@ our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMME
 our $HYBRID_PENALTY = -24; # this should be optimized.
 our $ANTISENSE_PENALTY = -24; #so should this
 
-our %GENEFAM;  # TODO: load this from anno/Species.gene_families.txt;
+our %GENEFAM;  # load this from anno/Species.gene_families.txt;
 our $GENEANNO;  # GeneAnnot object if --gtf=s is used to specify genome coordinates
 
 # INITIALIZE
