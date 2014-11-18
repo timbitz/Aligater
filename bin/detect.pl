@@ -22,6 +22,7 @@ use lib "$FindBin::Bin/../lib";
 use Getopt::Long;
 
 use GeneAnnot; # oop
+use GeneElement;
 use SamBasics qw(:all);
 use FuncBasics qw(isInt shove openFileHandle);
 use CoordBasics qw(coorOverlap parseRegion);
@@ -35,6 +36,7 @@ our $ANTISENSE_PENALTY = -24; #so should this
 
 our %GENEFAM;  # load this from anno/Species.gene_families.txt;
 our $GENEANNO;  # GeneAnnot object if --gtf=s is used to specify genome coordinates
+our $LOCALANNO; # GeneElement object if --rmsk=s is used to specify a repeat masker bed track
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -49,13 +51,16 @@ my $suppressAlnFlag = 0;
 
 my $gtfFile; #undef by default
 my $geneFamFile;
+my $rmskFile;
 
 GetOptions("o=s" => \$outputCore, 
            "base" => \$base64Flag,
            "noaln" => \$suppressAlnFlag,
            "noanti" => \$STRAND_SPECIFIC, #TODO
            "gfam=s" => \$geneFamFile,
-           "gtf=s" => \$gtfFile);
+           "gtf=s" => \$gtfFile,
+           "rmsk=s" => \$rmskFile
+);
 
 my $nonHybHndl;
 my $hybHndl; # alignment output filehandles.
@@ -82,7 +87,14 @@ if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
   $GENEANNO->load_GFF_or_GTF($gtfFile, 1);
 }
-# done loading GTF
+# done loading GTF;
+
+## Load BED file for RepeatMasker if defined;
+if(defined($rmskFile)) {
+  $LOCALANNO = new GeneElement;
+  $LOCALANNO->load_BED($rmskFile);
+}
+# done loading BED;
 
 # load gene family file if possible
 if(defined($geneFamFile)) {
@@ -287,10 +299,20 @@ sub getHybridFormat {
     # set genomic position if possible
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
-    # if - strand alignment, reverse genomeRan
-    $genomeRan = (defined($genomeRan) and $genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
-    my $genomeCoord = (defined($genomePos)) ? "$genomeChr\:$genomePos\:$genomeRan" : "NA";    
-
+    my $genomeCoord;
+    my $local;
+    if(defined($genomePos)) {
+      my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+1, $genomeRan]);
+      # get name of local bed entry if exists
+      (undef, $local) = defined($resRef) ? split(/\t/, $resRef->[0]) : (undef, "");
+      $local = ($local ne "") ? ".$local" : "";
+      # if - strand alignment, reverse genomeRan
+      $genomeRan = (defined($genomeRan) and $genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
+      $genomeCoord = "$genomeChr\:$genomePos\:$genomeRan";    
+    } else {
+      $genomeCoord = "NA";
+      $local = "";
+    }
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
@@ -302,7 +324,7 @@ sub getHybridFormat {
     $geneSymStruct =~ s/\b(?<!\-)$id(?!\-)\b/$geneSym/g;
     $ensTranStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensTran/g;
     $ensGeneStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensGene/g;
-    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype/g;
+    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype$local/g;
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;

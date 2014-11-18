@@ -22,7 +22,6 @@ use Getopt::Long;
 use SamBasics qw(:all);
 use FuncBasics qw(randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
-use hgSQLbasics;
 
 # INITIALIZE
 my $path = abs_path($0);
@@ -40,11 +39,6 @@ my %toFilter;  #main memory use of the program
 my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
 my $GENOMECOORD;
-
-# SQL VARIABLES
-my $RUNHGSQLFILTER = 0;
-my $HGSQLTABLE = "gencodeEnsembl60Repeats";  #default for hg19;
-my $LOCALSQL = 0;
 
 my $blastDb = "human_genomic,other_genomic,nt";
 
@@ -67,16 +61,7 @@ GetOptions("gc=f" => \$gcLimit,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
-           "hgsql" => \$RUNHGSQLFILTER,
-           "table=s" => \$HGSQLTABLE,
-           "local" => \$LOCALSQL
 );
-
-# TODO
-if($RUNHGSQLFILTER) {
-  resetDatabase();
-}
-# done
 
 #set hard filters
 if($strictOpt) {
@@ -128,7 +113,6 @@ if($RUNRACTIP) {
   explode "ractip version must be > 1.0.0 !" unless $racVer >= 1;
 }
 #---------------------------------------------------------#
-
 
 ## Set up fork manager;
 my $pm = Parallel::ForkManager->new($threads, $tmpPath);

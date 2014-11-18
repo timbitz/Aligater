@@ -1,4 +1,4 @@
-package GeneAnnot; 
+package GeneElement; 
  
 # Copyright (C) 2014 Tim Sterne-Weiler
 # e-mail: tim.sterne.weiler@utoronto.ca
@@ -70,15 +70,15 @@ sub load_BED {
   my $BEDhndl = openFileHandle($fileName);
   while(my $l = <$BEDhndl>) {
     chomp($l);
-    if($l =~ /^#/) { next; }
+    next if($l =~ /^#/);
     my(@t) = split(/\t/, $l);
     # ALTER THIS LINE TO PROVIDE SUPPORT FOR CDS..
-    explode "invalid BED format!" unless defined $t[0] and defined $t[1] and defined $t[2];
+    die "GeneElement.pm Input $.: invalid BED format!" unless defined $t[0] and defined $t[1] and defined $t[2];
     $CHROM{$t[0]} = {} unless defined($CHROM{$t[0]});
-    explode "invalid BED format col 1 and 2 must be integers" unless isInt($t[1]) and isInt($t[2]);
+    die "GeneElement.pm Input $.: invalid BED format col 1 and 2 $t[1] and $t[2] must be integers" unless isInt($t[1]) and isInt($t[2]);
     my $bin = binFromRangeExtended($t[1], $t[2]);
     $CHROM{$t[0]}->{$bin} = {} unless defined($CHROM{$t[0]}->{$bin});
-    my $coord = (defined($t[5]) and $t[5] =~ /[+-]/) ? [$t[0], $t[1], $t[2], $t[5]] : [$t[0], $t[1], $t[2]];
+    my $coord = (defined($t[5]) and $t[5] =~ /[+-]/) ? "$t[0]\:$t[1]\-$t[2]\:$t[5]" : "$t[0]\:$t[1]\-$t[2]";
     my $name = (defined($t[3])) ? $t[3] : $fileName;
     $CHROM{$t[0]}->{$bin}->{$coord} = $name;
   }
@@ -94,9 +94,11 @@ sub bedOverlap {
   my($self, $coord) = @_;
   my($chr, $start, $end, $strand) = parseRegion($coord);
   my $bin = binFromRangeExtended($start, $end);
+#  print "$bin\n";
   my(@results);
   foreach my $coordRef (keys %{$self->{"CHROM"}->{$chr}->{$bin}}) {
-    if(coorOverlap($coordRef, $coord)) {
+#    print coorToString($coordRef)."\t".coorToString([$chr, $start, $end, $strand])."\n";
+    if(coorOverlap($coordRef, [$chr, $start, $end, $strand])) {
       my $name = $self->{"CHROM"}->{$chr}->{$bin}->{$coordRef};
       push(@results, coorToString($coordRef)."\t$name");
     }
@@ -117,4 +119,3 @@ sub printBED {
 
 1; 
 __END__ 
-
