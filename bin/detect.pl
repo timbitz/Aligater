@@ -272,6 +272,8 @@ sub getHybridFormat {
   my $ensTranStruct = $hyb;
   my $ensGeneStruct = $hyb;
   my $biotypeStruct = $hyb;
+  my $repNameFamStruct = $hyb;
+  my $repClassStruct = $hyb;
 
   my $refPositions = $hyb;
   $refPositions =~ s/:/,/g;
@@ -299,20 +301,23 @@ sub getHybridFormat {
     # set genomic position if possible
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
-    my $genomeCoord;
-    my $local;
-    if(defined($genomePos)) {
-      my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+1, $genomeRan]);
-      # get name of local bed entry if exists
-      (undef, $local) = defined($resRef) ? split(/\t/, $resRef->[0]) : (undef, "");
-      $local = ($local ne "") ? ".$local" : "";
+    my $genomeCoord = "NA";
+    my($repName, $repFamily, $repClass) = ("NA", "NA", "NA");
+    if(defined($genomePos)) {  # if genome position exists...
+      if(defined($LOCALANNO)) {
+        my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+1, $genomeRan]);
+        # get name of local bed entry if exists
+        my(undef, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
+        # NOTE: ordered based on selected fields at UCSC!!
+        ($repName, $repClass, $repFamily) = split(/\,/, $local) if defined($local);
+      }
       # if - strand alignment, reverse genomeRan
       $genomeRan = (defined($genomeRan) and $genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
       $genomeCoord = "$genomeChr\:$genomePos\:$genomeRan";    
-    } else {
-      $genomeCoord = "NA";
-      $local = "";
-    }
+    } # else can't get genomic locus
+    
+    $repFamily = ($repName eq $repFamily) ? "" : "\_$repFamily"; #
+
     # set previously used char for same gene symbol
     if(defined($used{$geneSym})) {
       $char = $used{$geneSym};
@@ -324,7 +329,10 @@ sub getHybridFormat {
     $geneSymStruct =~ s/\b(?<!\-)$id(?!\-)\b/$geneSym/g;
     $ensTranStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensTran/g;
     $ensGeneStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensGene/g;
-    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype$local/g;
+    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype/g;
+
+    $repNameFamStruct =~ s/\b(?<!\-)$id(?!\-)\b/$repName$repFamily/g;
+    $repClassStruct =~ s/\b(?<!\-)$id(?!\-)\b/$repClass/g;
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
@@ -343,17 +351,18 @@ sub getHybridFormat {
     $used{$geneSym} = $char;
   }
   # get hybrid code and gene family structure.
-  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $genPositions); 
+  my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $repNameFamStruct, $genPositions); 
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
-  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct";
+  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct\t$repClassStruct\t";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
 sub getHybridCode {
-  my($chars, $genes, $genomePos) = @_;
+  my($chars, $genes, $repNames, $genomePos) = @_;
   my(@c) = split(/\:/, $chars);
-  my(@g) = split(/\:/, $genes);
+  my(@g) = split(/\:/, $genes); 
+  my(@r) = split(/\:/, $repNames);
   my $code = "S"; # intra molecular by default.
   my(@prefix) = @g; #copy array
   # try to get gene families..
@@ -371,9 +380,11 @@ sub getHybridCode {
   for(my $i=0; $i < scalar(@prefix); $i++) {
     my $fam = $prefix[$i];
     $testStruc =~ s/\b$fam\b/$i/g;
+    $repNames =~ s/\b$r[$i]\b/$i/g;
   }
   if($chars =~ /B/) {  #possibly inter-molecular
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
+    $code = "R" if ($code eq "I" and $repNames !~ /1/);
   }
   $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
   # check overlap of genomePos
