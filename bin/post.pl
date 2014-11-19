@@ -46,6 +46,7 @@ my $blastDb = "human_genomic,other_genomic,nt";
 my $bpMonoLimit = "Inf";
 my $gcLimit = 1;
 my $threads = 1;
+my $seqIndex = 10;  # hardcoded... for .lig format.
 
 my $interCrossLimit = 0;
 my $interStemLimit = 0;
@@ -145,7 +146,7 @@ while(my $l = <>) {
   chomp($l);
   my(@a) = split(/\t/, $l);
 
-  my $seq = $a[8];
+  my $seq = $a[$seqIndex];
   my $gcSeq  = $seq;
   $gcSeq =~ s/\_//g;
   my $gcContent = gcContent($gcSeq);
