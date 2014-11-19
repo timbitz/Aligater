@@ -59,6 +59,7 @@ GetOptions("gc=f" => \$gcLimit,
            "mono=i" => \$bpMonoLimit,
            "p=i" => \$threads, 
            "strict" => \$strictOpt,
+           "loose" => \$looseOpt,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
@@ -70,6 +71,12 @@ if($strictOpt) {
   $bpMonoLimit = 7;
   $interCrossLimit = 1;
   $interStemLimit = 5;
+  $pattFilter = "Low|Simple_repeat";
+}
+
+if($looseOpt) {
+  $gcLimit = 0.85;
+  $bcMonoLimit = 9;
 }
 
 if($fullOpt) {
