@@ -236,7 +236,7 @@ sub processAlignRec {
         explode "$a and $b are not defined in alnHash!" unless 
 		defined($alnHash->{$a}) and defined($alnHash->{$b}); 
         my $antiPenalty = ($alnHash->{$a}->[4] ne "hybrid" and getStrand($alnHash->{$a}->[4]) eq "-") ? $ANTISENSE_PENALTY : 0;
-        $antiPenalty += ($alnHash->{$b}->[4] ne "hybrid" and getStrand($alnHash->{$b}->[4]) eq "-") ? $ANTISENSE_PENALTY : 0; #TODO TEST;
+        $antiPenalty += ($alnHash->{$b}->[4] ne "hybrid" and getStrand($alnHash->{$b}->[4]) eq "-") ? $ANTISENSE_PENALTY : 0;
         $score = $alnHash->{$a}->[0] + $alnHash->{$b}->[0] + $HYBRID_PENALTY + $antiPenalty;
         $start = $alnHash->{$a}->[1];
         $len = ($alnHash->{$b}->[1] + $alnHash->{$b}->[2]) - $alnHash->{$a}->[1];
@@ -332,7 +332,7 @@ sub getHybridFormat {
     $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype/g;
 
     $repNameFamStruct =~ s/\b(?<!\-)$id(?!\-)\b/$repName$repFamily/g;
-    $repClassStruct =~ s/\b(?<!\-)$id(?!\-)\b/$repClass/g;
+    $repClassStruct   =~ s/\b(?<!\-)$id(?!\-)\b/$repClass/g;
 
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
@@ -353,7 +353,7 @@ sub getHybridFormat {
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $repNameFamStruct, $genPositions); 
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
-  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct\t$repClassStruct\t";
+  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct\t$repClassStruct";
   print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
 }
 

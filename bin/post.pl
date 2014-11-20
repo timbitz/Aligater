@@ -45,7 +45,9 @@ my $blastDb = "human_genomic,other_genomic,nt";
 # defaults are the lack there of
 my $bpMonoLimit = "Inf";
 my $gcLimit = 1;
+my $pattFilter;
 my $threads = 1;
+
 my $seqIndex = 10;  # hardcoded... for .lig format.
 
 my $interCrossLimit = 0;
@@ -54,6 +56,7 @@ my $interStemLimit = 0;
 # set default as strict;
 my $strictOpt = 0;
 my $fullOpt = 0;
+my $looseOpt = 0;
 
 GetOptions("gc=f" => \$gcLimit, 
            "mono=i" => \$bpMonoLimit,
@@ -72,11 +75,9 @@ if($strictOpt) {
   $interCrossLimit = 1;
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
-}
-
-if($looseOpt) {
+} elsif($looseOpt) {
   $gcLimit = 0.85;
-  $bcMonoLimit = 9;
+  $bpMonoLimit = 9;
 }
 
 if($fullOpt) {
@@ -129,7 +130,6 @@ my $pm = Parallel::ForkManager->new($threads, $tmpPath);
 $pm -> run_on_finish ( # called BEFORE the first call to start()
   sub {
     my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
- 
     # retrieve data structure from child
     if (defined($data_ref)) {  # children are not forced to send anything
       my($key, $mid, $val) = @{$data_ref};  # child passed a string reference
@@ -140,14 +140,14 @@ $pm -> run_on_finish ( # called BEFORE the first call to start()
         print $key;
       }
     } else {  # problems occuring will throw a warning
-#      reverb "No message received from child process $pid!\n";
+      reverb "No message received from child process $pid!\n";
     }
   }
 );
 
 # main loop, collect relevant entries and store into memory if --blast
 while(my $l = <>) {
-
+   
   $pm->start() and next;  # fork to child
 
   chomp($l);
@@ -163,6 +163,7 @@ while(my $l = <>) {
   $pm->finish if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
   $pm->finish if length($seq) < 45; # need at least 22bp on either side.
   $pm->finish if $gcContent >= $gcLimit; # greater than limit of gc content
+  $pm->finish if defined($pattFilter) and $l =~ /$pattFilter/;  #option specific filter.
   #------------------------------------------------------------------#
 
   my($seqA, $seqB) = split(/\_/, $seq); 
