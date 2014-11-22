@@ -66,6 +66,7 @@ sub load_BED {
   my($self, $fileName) = @_;
 
   my(%CHROM);
+  my(%COORD);
 
   my $BEDhndl = openFileHandle($fileName);
   while(my $l = <$BEDhndl>) {
@@ -74,17 +75,19 @@ sub load_BED {
     my(@t) = split(/\t/, $l);
     # ALTER THIS LINE TO PROVIDE SUPPORT FOR CDS..
     die "GeneElement.pm Input $.: invalid BED format!" unless defined $t[0] and defined $t[1] and defined $t[2];
-    $CHROM{$t[0]} = {} unless defined($CHROM{$t[0]});
+    $CHROM{$t[0]} = {} and $COORD{$t[0]} = {} unless defined($CHROM{$t[0]});
     die "GeneElement.pm Input $.: invalid BED format col 1 and 2 $t[1] and $t[2] must be integers" unless isInt($t[1]) and isInt($t[2]);
     my $bin = binFromRangeExtended($t[1], $t[2]);
     $CHROM{$t[0]}->{$bin} = {} unless defined($CHROM{$t[0]}->{$bin});
-    my $coord = (defined($t[5]) and $t[5] =~ /[+-]/) ? "$t[0]\:$t[1]\-$t[2]\:$t[5]" : "$t[0]\:$t[1]\-$t[2]";
+    $COORD{$t[0]}->{$bin} = [] unless defined($COORD{$t[0]}->{$bin});
+    my $coord = (defined($t[5]) and $t[5] =~ /[+-]/) ? [$t[0],$t[1],$t[2],$t[5]] : [$t[0],$t[1],$t[2]];
     my $name = (defined($t[3])) ? $t[3] : $fileName;
-    $CHROM{$t[0]}->{$bin}->{$coord} = $name;
+    $CHROM{$t[0]}->{$bin}->{coorToString($coord)} = $name;
+    push(@{$COORD{$t[0]}->{$bin}}, $coord);
   }
   close $BEDhndl;
 
-
+  $self->{"COORD"} = \%COORD;
   $self->{"CHROM"} = \%CHROM;
 }
 
@@ -96,11 +99,12 @@ sub bedOverlap {
   my $bin = binFromRangeExtended($start, $end);
 #  print "$bin\n";
   my(@results);
-  foreach my $coordRef (keys %{$self->{"CHROM"}->{$chr}->{$bin}}) {
+  foreach my $coordRef (@{$self->{"COORD"}->{$chr}->{$bin}}) {
 #    print coorToString($coordRef)."\t".coorToString([$chr, $start, $end, $strand])."\n";
     if(coorOverlap($coordRef, [$chr, $start, $end, $strand])) {
-      my $name = $self->{"CHROM"}->{$chr}->{$bin}->{$coordRef};
-      push(@results, coorToString($coordRef)."\t$name");
+      my $str = coorToString($coordRef);
+      my $name = $self->{"CHROM"}->{$chr}->{$bin}->{$str};
+      push(@results, "$str\t$name");
     }
   }
   return((scalar(@results) > 0) ? \@results : undef);
