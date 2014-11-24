@@ -109,7 +109,7 @@ if($subCommand eq "align") {
 } elsif($subCommand eq "detect") {
   # pipe to bam reader
   my $samtoolsCmd = ($bamFormat) ? "| samtools view -h -" : "";  
-  open(DETECT, "$samtoolsCmd | $path/bin/detect.pl -p $alignThreads @ARGV");
+  open(DETECT, "$samtoolsCmd | $path/bin/detect.pl @ARGV");
   while(<STDIN>) {
     print DETECT;
   }
