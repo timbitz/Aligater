@@ -239,7 +239,7 @@ sub runRactIP {
   my($seqA, $seqB, $param) = @_;
   $seqA =~ s/T/U/g if($seqA =~ /T/);
   $seqB =~ s/T/U/g if($seqB =~ /T/);
-  my $rand = substr(md5_hex($.), 0, 4);   
+  my $rand = substr(md5_hex($.), 0, 12);   
   system("echo \">seqA\n$seqA\n>seqB\n$seqB\" > $tmpPath/$rand\_seq.fa"); 
   $param = defined($param) ? "-P $param" : "";
   my(@res) = `ractip $tmpPath/$rand\_seq.fa -e $param`;
