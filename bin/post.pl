@@ -148,7 +148,9 @@ $pm -> run_on_finish ( # called BEFORE the first call to start()
 # main loop, collect relevant entries and store into memory if --blast
 while(my $l = <>) {
    
-  $pm->start() and next;  # fork to child
+  if($threads > 1) {
+    $pm->start() and next;  # fork to child
+  }
 
   chomp($l);
   my(@a) = split(/\t/, $l);
@@ -160,10 +162,14 @@ while(my $l = <>) {
 
   # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
-  $pm->finish if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
-  $pm->finish if length($seq) < 45; # need at least 22bp on either side.
-  $pm->finish if $gcContent >= $gcLimit; # greater than limit of gc content
-  $pm->finish if defined($pattFilter) and $l =~ /$pattFilter/;  #option specific filter.
+  my $hardFilt = 0;
+  $hardFilt++ if($seq =~ /[Aa]{$bpMonoLimit}|[Tt]{$bpMonoLimit}|[Cc]{$bpMonoLimit}|[Gg]{$bpMonoLimit}/);
+  $hardFilt++ if length($seq) < 45; # need at least 22bp on either side.
+  $hardFilt++ if $gcContent >= $gcLimit; # greater than limit of gc content
+  $hardFilt++ if defined($pattFilter) and $l =~ /$pattFilter/;  #option specific filter.
+
+  $pm->finish if($hardFilt and $threads > 1); # if threads > 1
+  next if $hardFilt;  # if threads == 1
   #------------------------------------------------------------------#
 
   my($seqA, $seqB) = split(/\_/, $seq); 
@@ -178,8 +184,11 @@ while(my $l = <>) {
 
     # HARD FILTERS POST RACTIP-----------------------------------------#
     if($a[0] eq "I") {  #perhaps just reset the code to R instead of these hard filters TODO!!
-      $pm->finish unless($len >= $interStemLimit);
-      $pm->finish unless($amt >= $interCrossLimit);
+      $hardFilt++ unless($len >= $interStemLimit);
+      $hardFilt++ unless($amt >= $interCrossLimit);
+
+      $pm->finish if($hardFilt and $threads > 1); # if threads > 1
+      next if $hardFilt;  # if threads == 1
     }
     #------------------------------------------------------------------#
   }
@@ -203,9 +212,18 @@ while(my $l = <>) {
     #print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
     $key = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
   }
-  $pm->finish(0, [$key, $mid, $val]);
+  if($threads > 1) {
+    $pm->finish(0, [$key, $mid, $val]);
+  } else {
+    if($RUNBLAST) {
+      $toFilter{$key} = $val;
+      print FORBLAST "$key\:$mid";
+    } else {
+      print $key;
+    }
+  }
 } # end main loop
-$pm->wait_all_children;
+$pm->wait_all_children if $threads > 1;
 close FORBLAST;
 
 
@@ -243,7 +261,7 @@ sub runRactIP {
   system("echo \">seqA\n$seqA\n>seqB\n$seqB\" > $tmpPath/$rand\_seq.fa"); 
   $param = defined($param) ? "-P $param" : "";
   my(@res) = `ractip $tmpPath/$rand\_seq.fa -e $param`;
-  system("rm $tmpPath/$rand*");
+  system("rm $tmpPath/$rand\_seq.fa");
   chomp @res;
   my($structA, $structB) = ($res[2], $res[5]); #set structures
   $res[6] =~ /JS\= ([\d\-\.]+)/;
