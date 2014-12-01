@@ -85,6 +85,12 @@ if($fullOpt) {
   $RUNBLAST = 1;
 }
 
+my $blastThreads;
+if($RUNBLAST) {
+  $blastThreads = $threads;
+  $threads = 1;
+}
+
 # don't die, explode!
 sub explode {
   my $str = shift;
@@ -229,7 +235,7 @@ close FORBLAST;
 
 if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
   foreach my $db (split(/\,/, $blastDb)) {
-    runBlastn($db, "tmp_$rand", $threads, $tmpPath);
+    runBlastn($db, "tmp_$rand", $blastThreads, $tmpPath);
     openBlastOutAndRemoveHits("$tmpPath/tmp_$rand.$db.out", \%toFilter);
   }
   system("rm $tmpPath/tmp_$rand.*");
