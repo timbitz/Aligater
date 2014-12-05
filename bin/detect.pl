@@ -146,10 +146,11 @@ while(my $l = <>) {
     processAlignRec($alnHash, $sHash, $eHash);
 
     #output best alignment here.
-    my($bestK) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
+    my(@alnKeys) = sort { alignCmp($alnHash->{$b}, $alnHash->{$a}) } keys %$alnHash;
+    my($bestK) = $alnKeys[0];
     if(defined $bestK) {
       if($bestK =~ /\:/) { # chimeric read
-        my $hybrid = getHybridFormat($bestK, $alnHash);
+        my $hybrid = getHybridFormat(\@alnKeys, $alnHash);
         my(@alns) = split(/\:/, $bestK);
         foreach my $al (@alns) {
           my $aRef = $alnHash->{$al};
@@ -262,7 +263,8 @@ sub processAlignRec {
 
 # this function outputs the `.lig` file format...
 sub getHybridFormat {
-  my($hyb, $alnHash) = @_;
+  my($alnKeys, $alnHash) = @_;
+  my $hyb = $alnKeys->[0]; #sorted by alignment best key TODO analyze uniqueness.
   explode "getHybridFormat ERROR!\n" unless (defined($hyb) and defined($alnHash));
   my(@a) = split(/\:/, $hyb);
   my $alpha = join("", ("A".."Z"));
@@ -353,8 +355,9 @@ sub getHybridFormat {
   # get hybrid code and gene family structure.
   my($hybCode, $familyStruct) = getHybridCode($charStruct, $geneSymStruct, $repNameFamStruct, $genPositions); 
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
-  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct\t$repClassStruct";
-  print "\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
+  ## Main output format...
+  print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct";
+  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular

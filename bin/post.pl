@@ -141,7 +141,7 @@ $pm -> run_on_finish ( # called BEFORE the first call to start()
       my($key, $mid, $val) = @{$data_ref};  # child passed a string reference
       if($RUNBLAST) {
         $toFilter{$key} = $val;
-        print FORBLAST "$key\:$mid";
+        print FORBLAST ">$key\:$mid";
       } else {
         print $key;
       }
@@ -223,7 +223,7 @@ while(my $l = <>) {
   } else {
     if($RUNBLAST) {
       $toFilter{$key} = $val;
-      print FORBLAST "$key\:$mid";
+      print FORBLAST ">$key\:$mid";
     } else {
       print $key;
     }
@@ -354,7 +354,7 @@ sub maxLength {
 
 sub runBlastn {
   my($db, $basename, $threads, $tmpPath) = @_;
-  system("blastn -query $tmpPath/$basename.fa -task blastn -db $db -word_size 20 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_threads $threads > $tmpPath/$basename.$db.out");
+  system("blastn -query $tmpPath/$basename.fa -task blastn -db $db -word_size 24 -outfmt '6 sseqid sstart send qseqid sstrand pident length qstart qend qseq sseq evalue' -perc_identity 75 -culling_limit 1 -num_alignments 5 -num_threads $threads > $tmpPath/$basename.$db.out");
 }
 
 sub openBlastOutAndRemoveHits {
