@@ -287,6 +287,8 @@ sub getHybridFormat {
   my $readName = $alnHash->{$hyb}->[3];
   my $alnScore = $alnHash->{$hyb}->[0];
 
+  my($mapqNum, $mapqDiff) = chimeraUniqueness($alnKeys, $alnHash);
+
   my $readSeq = $alnHash->{1}->[12];  # get raw read sequence in forward orientation
   $readSeq = revComp($readSeq) if (getStrand($alnHash->{1}->[4]) eq "-"); # TEST TODO
 
@@ -414,6 +416,23 @@ sub getHybridCode {
   return($code, $geneFamStruc);
 }
 
+# this function's purpose is to determine how much better the maximal alignment score is
+# from the next best alignment score, and how many if any alignments have the equivalnt score
+# as the maximum.  It returns this as two scalars ( indNum, nextDiff )
+sub chimeraUniqueness {
+  my($sortAlnArr, $alnHash) = @_;
+  my $indNum = 0;  # keep track of the number of alignments with the same maximal score
+  my $nextDiff = 0; # find the difference between the max score and the next best score.
+  my $bestScore = $alnHash->{ $sortAlnArr->[0] }->[0]; # record best score.
+  for(my $i = 1; $i < scalar(@$sortAlnArr); $i++) {
+    my $k = $sortAlnArr->[$i];
+    my $curScore = $alnHash->{$k}->[0];
+    $indNum++ and next if($curScore == $bestScore);
+    $nextDiff = $bestScore - $curScore;
+    last;
+  }
+  return($indNum,$nextDiff);
+}
 
 # compare two alignments first by alignment score
 # then by symbol and biotypes.
