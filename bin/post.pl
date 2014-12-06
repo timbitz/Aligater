@@ -48,7 +48,9 @@ my $gcLimit = 1;
 my $pattFilter;
 my $threads = 1;
 
-my $seqIndex = 10;  # hardcoded... for .lig format.
+#####################
+my $seqIndex = 12;  # hardcoded... for .lig format.
+#####################
 
 my $interCrossLimit = 0;
 my $interStemLimit = 0;
