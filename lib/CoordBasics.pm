@@ -82,13 +82,16 @@ sub parseRegion {
 # INPUT two genomeCoordinate 
 # RETURN # of bases overlapping between regions. 
 sub coorOverlap { 
-  my($coorA, $coorB) = @_; 
+  my($coorA, $coorB, $strandSpecificFlag) = @_;
+  $strandSpecificFlag = 0 unless(defined($strandSpecificFlag)); 
   my($chrA, $stA, $enA, $ranA) = parseRegion($coorA); 
   my($chrB, $stB, $enB, $ranB) = parseRegion($coorB);
-  unless($chrA eq $chrB and $ranA eq $ranB) { return(0); }
-  if($stA > $enB || $stB > $enA) { return(0); }
+  return(0) unless($chrA eq $chrB);
+  return(0) if($strandSpecificFlag and $ranA ne $ranB);
+  return(0) if($stA > $enB || $stB > $enA);
   return(min($enA, $enB) - max($stA, $stB)); 
 }
+
 
 # INPUT two genomeCoordinate 
 # RETURN true if $coorA is within $coorB. 

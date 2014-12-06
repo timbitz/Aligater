@@ -391,6 +391,7 @@ sub getHybridCode {
   }
   if($chars =~ /B/) {  #possibly inter-molecular
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
+    # set R if both are exact same repeat from --rmsk
     $code = "R" if ($code eq "I" and $repNames =~ /^[0\:]+$/);
   }
   $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
