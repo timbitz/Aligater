@@ -269,6 +269,7 @@ sub getHybridFormat {
   my(@a) = split(/\:/, $hyb);
   my $alpha = join("", ("A".."Z"));
   my(%used);
+  # set variables as alignment struct for substitutions.
   my $charStruct = $hyb;
   my $geneSymStruct = $hyb;
   my $ensTranStruct = $hyb;
@@ -287,6 +288,7 @@ sub getHybridFormat {
   my $readName = $alnHash->{$hyb}->[3];
   my $alnScore = $alnHash->{$hyb}->[0];
 
+  # chimera quality here
   my($mapqNum, $mapqDiff) = chimeraUniqueness($alnKeys, $alnHash);
 
   my $readSeq = $alnHash->{1}->[12];  # get raw read sequence in forward orientation
@@ -359,7 +361,7 @@ sub getHybridFormat {
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
   ## Main output format...
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct";
-  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$refPositions\t$alnLengths\t$genPositions\n";
+  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
@@ -422,14 +424,18 @@ sub getHybridCode {
 sub chimeraUniqueness {
   my($sortAlnArr, $alnHash) = @_;
   my $indNum = 0;  # keep track of the number of alignments with the same maximal score
-  my $nextDiff = 0; # find the difference between the max score and the next best score.
   my $bestScore = $alnHash->{ $sortAlnArr->[0] }->[0]; # record best score.
+  my $nextDiff = $bestScore; # find the difference between the max score and the next best score.
   for(my $i = 1; $i < scalar(@$sortAlnArr); $i++) {
     my $k = $sortAlnArr->[$i];
     my $curScore = $alnHash->{$k}->[0];
-    $indNum++ and next if($curScore == $bestScore);
-    $nextDiff = $bestScore - $curScore;
-    last;
+    if($curScore == $bestScore or !defined($curScore)) {
+      $indNum++;
+      next;
+    } else {
+      $nextDiff = $bestScore - $curScore;
+      last;
+    }
   }
   return($indNum,$nextDiff);
 }
