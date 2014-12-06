@@ -282,6 +282,8 @@ sub getHybridFormat {
   $refPositions =~ s/:/,/g;
   my $genPositions = $hyb;
   $genPositions =~ s/:/,/g;
+  my $rmskPositions = $hyb;
+  $rmskPositions =~ s/:/,/g;
   my $alnLengths = $refPositions;
 
   my $ligSitePos = "";
@@ -303,6 +305,7 @@ sub getHybridFormat {
     my $readPos = $alnHash->{$id}->[1];
     my $length = $alnHash->{$id}->[2];
     my $strand = getStrand($alnHash->{$id}->[4]); # TODO TEST
+    my $rmskPos = "NA";
 
     # set genomic position if possible
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
@@ -315,7 +318,23 @@ sub getHybridFormat {
         # get name of local bed entry if exists
         my($resCoord, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
         # NOTE: ordered based on selected fields at UCSC!!
-        ($repName, $repClass, $repFamily) = split(/\,/, $local) if defined($local);
+        if(defined($resCoord) and defined($local)) { # if there is overlap results from rmsk
+          ($repName, $repClass, $repFamily) = split(/\,/, $local);
+          my $resGenomeStrand = ($genomeRan eq "+") ? "-" : "+"; # reverse strand for..
+          # check if the repeat name/class is on the opposite strand
+          # if so set as inverted repeat `IR`
+          if($resCoord =~ /\:$resGenomeStrand$/) {
+            $repName = "IR-$repName";
+            $repClass = "IR-$repClass";
+          }
+          # lets now get the ligation position within the local rmsk element.
+          my(undef, $rmskStart, $rmskEnd, undef) = parseRegion($resCoord);
+          if($genomeRan eq "+") {
+            $rmskPos = $genomePos - $rmskStart;  #TODO check off by one calculation here
+          } else {
+            $rmskPos = $rmskEnd - $genomePos;  # same here.
+          } 
+        }
       }
       # if - strand alignment, reverse genomeRan
       $genomeRan = (defined($genomeRan) and $genomeRan eq "+") ? "-" : "+" if($strand eq "-"); # quaternary operator? ;-)
@@ -343,6 +362,7 @@ sub getHybridFormat {
     # push alignment start position in reference.
     $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
     $genPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeCoord/;
+    $rmskPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$rmskPos/;
     $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
 
     # make read sequence structure;
@@ -361,7 +381,7 @@ sub getHybridFormat {
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
   ## Main output format...
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct";
-  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$alnLengths\t$genPositions\n";
+  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$rmskPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
