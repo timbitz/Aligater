@@ -313,7 +313,7 @@ sub getHybridFormat {
       if(defined($LOCALANNO)) {
         my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+1, $genomeRan]);
         # get name of local bed entry if exists
-        my(undef, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
+        my($resCoord, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
         # NOTE: ordered based on selected fields at UCSC!!
         ($repName, $repClass, $repFamily) = split(/\,/, $local) if defined($local);
       }
@@ -387,11 +387,11 @@ sub getHybridCode {
   for(my $i=0; $i < scalar(@prefix); $i++) {
     my $fam = $prefix[$i];
     $testStruc =~ s/\b$fam\b/$i/g;
-    $repNames =~ s/\b$r[$i]\b/$i/g;
+    $repNames =~ s/\b$r[$i]\b/$i/g unless $r[$i] eq "NA";
   }
   if($chars =~ /B/) {  #possibly inter-molecular
     $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
-    $code = "R" if ($code eq "I" and $repNames !~ /1/);
+    $code = "R" if ($code eq "I" and $repNames =~ /^[0\:]+$/);
   }
   $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
   # check overlap of genomePos
