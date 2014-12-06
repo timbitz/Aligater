@@ -83,9 +83,9 @@ sub parseRegion {
 # RETURN # of bases overlapping between regions. 
 sub coorOverlap { 
   my($coorA, $coorB) = @_; 
-  my($chrA, $stA, $enA, undef) = parseRegion($coorA); 
-  my($chrB, $stB, $enB, undef) = parseRegion($coorB);
-  unless($chrA eq $chrB) { return(0); }
+  my($chrA, $stA, $enA, $ranA) = parseRegion($coorA); 
+  my($chrB, $stB, $enB, $ranB) = parseRegion($coorB);
+  unless($chrA eq $chrB and $ranA eq $ranB) { return(0); }
   if($stA > $enB || $stB > $enA) { return(0); }
   return(min($enA, $enB) - max($stA, $stB)); 
 }
