@@ -49,7 +49,7 @@ my $pattFilter;
 my $threads = 1;
 
 #####################
-my $seqIndex = 12;  # hardcoded... for .lig format.
+my $seqIndex = 10;  # hardcoded... for .lig format.
 #####################
 
 my $interCrossLimit = 0;
