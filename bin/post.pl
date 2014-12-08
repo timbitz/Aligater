@@ -47,10 +47,12 @@ my $bpMonoLimit = "Inf";
 my $gcLimit = 1;
 my $pattFilter;
 my $threads = 1;
+my $mapqMaxMin = "Inf>0";  #no filter.
 
-#####################
-my $seqIndex = 10;  # hardcoded... for .lig format.
-#####################
+##########################
+my $seqIndex = 10;       # hardcoded... for .lig format.
+my $mapqIndex = 12; #
+##########################
 
 my $interCrossLimit = 0;
 my $interStemLimit = 0;
@@ -62,6 +64,7 @@ my $looseOpt = 0;
 
 GetOptions("gc=f" => \$gcLimit, 
            "mono=i" => \$bpMonoLimit,
+           "mapq=s" => \$mapqMaxMin,
            "p=i" => \$threads, 
            "strict" => \$strictOpt,
            "loose" => \$looseOpt,
@@ -77,9 +80,11 @@ if($strictOpt) {
   $interCrossLimit = 1;
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
+  $mapqMaxMin = "5>10";
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
+  $mapqMaxMin = "30>5";
 }
 
 if($fullOpt) {
@@ -131,6 +136,12 @@ if($RUNRACTIP) {
 }
 #---------------------------------------------------------#
 
+# parse options
+my($mapqIdent, $mapqDiff) = split(/\>/, $mapqMaxMin);
+unless(defined($mapqIdent) and defined($mapqDiff) and isInt($mapqIdent) and isInt($mapqDiff)) {
+  explode "Improper `--mapq` format! INT>INT !\n";
+}
+
 ## Set up fork manager;
 my $pm = Parallel::ForkManager->new($threads, $tmpPath);
 
@@ -168,6 +179,8 @@ while(my $l = <>) {
   $gcSeq =~ s/\_//g;
   my $gcContent = gcContent($gcSeq);
 
+  my($mapqLeft, $mapqRight) = split(/\>/, $a[$mapqIndex]);
+
   # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
   my $hardFilt = 0;
@@ -175,6 +188,8 @@ while(my $l = <>) {
   $hardFilt++ if length($seq) < 45; # need at least 22bp on either side.
   $hardFilt++ if $gcContent >= $gcLimit; # greater than limit of gc content
   $hardFilt++ if defined($pattFilter) and $l =~ /$pattFilter/;  #option specific filter.
+  $hardFilt++ if $mapqLeft > $mapqIdent;
+  $hardFilt++ if $mapqRight < $mapqDiff;
 
   $pm->finish if($hardFilt and $threads > 1); # if threads > 1
   next if $hardFilt;  # if threads == 1
