@@ -20,7 +20,7 @@ use Getopt::Long;
 
 # from ../lib
 use SamBasics qw(:all);
-use FuncBasics qw(randomSeedRNG max min openFileHandle);
+use FuncBasics qw(isInt randomSeedRNG max min openFileHandle);
 use SequenceBasics qw(gcContent);
 
 # INITIALIZE
@@ -233,7 +233,7 @@ while(my $l = <>) {
     }
   } else { # no need to waste memory, lets just print as we go. 
     #print "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n"; 
-    $key = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+    $key = ($RUNRACTIP) ? "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n" : "$l\n";
   }
   if($threads > 1) {
     $pm->finish(0, [$key, $mid, $val]);
