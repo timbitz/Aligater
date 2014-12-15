@@ -80,7 +80,7 @@ if($strictOpt) {
   $interCrossLimit = 1;
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
-  $mapqMaxMin = "5>10";
+  $mapqMaxMin = "10>5";
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
