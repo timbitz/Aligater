@@ -84,7 +84,7 @@ if($strictOpt) {
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
-  $mapqMaxMin = "30>5";
+  $mapqMaxMin = "50>5";
 }
 
 if($fullOpt) {

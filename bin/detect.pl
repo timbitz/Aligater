@@ -384,7 +384,7 @@ sub getHybridFormat {
   print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$rmskPositions\t$alnLengths\t$genPositions\n";
 }
 
-# I = putative inter-molecular, R = paralogous intra-molecular, S = intra-molecular
+# I = putative inter-molecular, P = paralogous intra-molecular, S = intra-molecular
 sub getHybridCode {
   my($chars, $genes, $repNames, $genomePos) = @_;
   my(@c) = split(/\:/, $chars);
@@ -410,9 +410,9 @@ sub getHybridCode {
     $repNames =~ s/\b$r[$i]\b/$i/g unless $r[$i] eq "NA";
   }
   if($chars =~ /B/) {  #possibly inter-molecular
-    $code = ($testStruc =~ /1/) ? "I" : "R";  # set code 
-    # set R if both are exact same repeat from --rmsk
-    $code = "R" if ($code eq "I" and $repNames =~ /^[0\:]+$/);
+    $code = ($testStruc =~ /1/) ? "I" : "P";  # set code 
+    # set P if both are exact same repeat from --rmsk
+    $code = "P" if ($code eq "I" and $repNames =~ /^[0\:]+$/);
   }
   $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
   # check overlap of genomePos
