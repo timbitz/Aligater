@@ -74,7 +74,7 @@ sub new {
 sub load_GFF_or_GTF {
   my($self, $fileName, $ignoreDecimal) = @_;
 
-  $ignoreDecimal = defined($ignoreDecimal) and $ignoreDecimal ? 1 : 0;
+  $ignoreDecimal = (defined($ignoreDecimal) and $ignoreDecimal) ? 1 : 0;
 
   my(%GENE_CHILD);
   my(%GENE_ALIAS);

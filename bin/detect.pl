@@ -85,7 +85,7 @@ sub reverb {
 ## Load GTF/GFF file if defined;
 if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
-  $GENEANNO->load_GFF_or_GTF($gtfFile, 1);
+  $GENEANNO->load_GFF_or_GTF($gtfFile);
 }
 # done loading GTF;
 
@@ -384,7 +384,7 @@ sub getHybridFormat {
   print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$rmskPositions\t$alnLengths\t$genPositions\n";
 }
 
-# I = putative inter-molecular, P = paralogous intra-molecular, S = intra-molecular
+# I = putative inter-molecular, P = paralogous intra-molecular, S = intra-molecular, A = sense-antisense
 sub getHybridCode {
   my($chars, $genes, $repNames, $genomePos) = @_;
   my(@c) = split(/\:/, $chars);
@@ -414,12 +414,13 @@ sub getHybridCode {
     # set P if both are exact same repeat from --rmsk
     $code = "P" if ($code eq "I" and $repNames =~ /^[0\:]+$/);
   }
-  $code = "A" if ($chars =~ /\-/); # antisense; #TODO TEST
+#  $code = "A" if ($chars =~ /\-/); # antisense; #deprecated 1/2015
   # check overlap of genomePos
   if($genomePos) {
     my(@pos) = split(/\,/, $genomePos);
     my $overlap = 0;
     my $compNum = 0;
+    my $antisense = 0;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
       next if $pos[$i] eq "NA";
       my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
@@ -430,10 +431,12 @@ sub getHybridCode {
         my($bChr, $bPos, $bRan) = split(/\:/, $pos[$j]);
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
         $overlap++ if coorOverlap($aCoord, $bCoord);
+        $antisense++ if $aRan ne $bRan;
       }
     }
-    if($overlap == $compNum and $overlap > 0 and $code ne "A") { # then this is the same locus
-      $code = "S"; #TODO TEST
+    # deprecated 1/2015 and $code ne "A"
+    if($overlap == $compNum and $overlap > 0) { # then this is the same locus
+      $code = $antisense ? "A" : "S"; #TODO TEST
     }
   }
   return($code, $geneFamStruc);
