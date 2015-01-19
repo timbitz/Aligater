@@ -350,20 +350,20 @@ sub getHybridFormat {
     $char = "-$char" if $strand eq "-"; # mark the antisense structure; #TODO TEST
 
     # substitute hyb number for char or sym etc;
-    $charStruct    =~ s/\b(?<!\-)$id(?!\-)\b/$char/g;
-    $geneSymStruct =~ s/\b(?<!\-)$id(?!\-)\b/$geneSym/g;
-    $ensTranStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensTran/g;
-    $ensGeneStruct =~ s/\b(?<!\-)$id(?!\-)\b/$ensGene/g;
-    $biotypeStruct =~ s/\b(?<!\-)$id(?!\-)\b/$biotype/g;
+    $charStruct    =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$char/g;
+    $geneSymStruct =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$geneSym/g;
+    $ensTranStruct =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$ensTran/g;
+    $ensGeneStruct =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$ensGene/g;
+    $biotypeStruct =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$biotype/g;
 
-    $repNameFamStruct =~ s/\b(?<!\-)$id(?!\-)\b/$repName$repFamily/g;
-    $repClassStruct   =~ s/\b(?<!\-)$id(?!\-)\b/$repClass/g;
+    $repNameFamStruct =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$repName$repFamily/g;
+    $repClassStruct   =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$repClass/g;
 
     # push alignment start position in reference.
-    $refPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$refPos/;
-    $genPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$genomeCoord/;
-    $rmskPositions  =~ s/\b(?<!\-)$id(?!\-)\b/$rmskPos/;
-    $alnLengths    =~ s/\b(?<!\-)$id(?!\-)\b/$length/;
+    $refPositions  =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$refPos/;
+    $genPositions  =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$genomeCoord/;
+    $rmskPositions =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$rmskPos/;
+    $alnLengths    =~ s/\b(?<![\-\.])$id(?![\-\.])\b/$length/;
 
     # make read sequence structure;
     if($i == 0) { # first alignment
