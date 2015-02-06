@@ -28,10 +28,10 @@ use FuncBasics qw(isInt shove openFileHandle);
 use CoordBasics qw(coorOverlap parseRegion);
 use SequenceBasics qw(maskstr revComp);
 
-our $COORDEXPAND = 1000; # this is the buffer range for overlapping genomic loci
+our $COORDEXPAND = 100; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMMENDED!
-our $HYBRID_PENALTY = -24; # this should be optimized.
+our $HYBRID_PENALTY = -64; # this should be optimized.
 our $ANTISENSE_PENALTY = -24; #so should this
 
 our %GENEFAM;  # load this from anno/Species.gene_families.txt;
@@ -105,6 +105,11 @@ if(defined($geneFamFile)) {
     my(@a) = split(/\t/, $l);
     explode "Improper gene family file format!" unless defined($a[0]) and defined($a[1]);
     $GENEFAM{$a[1]} = $a[0];
+    for(my $i=1; $i < 1000; $i++) { #add pseudogene symbols
+      $GENEFAM{"$a[0]$i"."P"} = $a[0];
+      $GENEFAM{"$a[0]-$i"."P"} = $a[0];
+      $GENEFAM{"$a[0]-$i"} = $a[0];
+    }
   }
   close $geneHndl;
 }
@@ -291,7 +296,7 @@ sub getHybridFormat {
   my $alnScore = $alnHash->{$hyb}->[0];
 
   # chimera quality here
-  my($mapqNum, $mapqDiff) = chimeraUniqueness($alnKeys, $alnHash);
+  my $ligq = chimeraUniqueness($alnKeys, $alnHash);
 
   my $readSeq = $alnHash->{1}->[12];  # get raw read sequence in forward orientation
   $readSeq = revComp($readSeq) if (getStrand($alnHash->{1}->[4]) eq "-"); # TEST TODO
@@ -381,7 +386,7 @@ sub getHybridFormat {
   $charStruct =~ tr/B-Z/A/ if $hybCode eq "S"; # if we changed the hybCode, alter charStruct to match.
   ## Main output format...
   print "$hybCode\t$charStruct\t$hyb\t$geneSymStruct\t$ensGeneStruct\t$ensTranStruct\t$biotypeStruct\t$repNameFamStruct";
-  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$mapqNum\>$mapqDiff\t$refPositions\t$rmskPositions\t$alnLengths\t$genPositions\n";
+  print "\t$repClassStruct\t$readName\t$readSeq\t$alnScore\t$ligq\t$refPositions\t$rmskPositions\t$alnLengths\t$genPositions\n";
 }
 
 # I = putative inter-molecular, P = paralogous intra-molecular, S = intra-molecular, A = sense-antisense
@@ -450,18 +455,31 @@ sub chimeraUniqueness {
   my $indNum = 0;  # keep track of the number of alignments with the same maximal score
   my $bestScore = $alnHash->{ $sortAlnArr->[0] }->[0]; # record best score.
   my $nextDiff = $bestScore; # find the difference between the max score and the next best score.
+  my(@numBest); # this is filled with hashes to record the number of best alns for each mapping segment
+  for(my $i = 0; $i < scalar(split(/\:/, $sortAlnArr->[0])); $i++) {
+    push(@numBest, {}); # push empty hash
+  }
   for(my $i = 1; $i < scalar(@$sortAlnArr); $i++) {
     my $k = $sortAlnArr->[$i];
     my $curScore = $alnHash->{$k}->[0];
     if($curScore == $bestScore or !defined($curScore)) {
       $indNum++;
+      my(@alnKeys) = split(/\:/, $k); # add the keys to the numBest record
+      for(my $keyIt = 0; $keyIt < scalar(@alnKeys); $keyIt++) {
+        $numBest[$keyIt]->{$alnKeys[$keyIt]} = "";
+      }
       next;
     } else {
       $nextDiff = $bestScore - $curScore;
       last;
     }
   }
-  return($indNum,$nextDiff);
+  my $uniqNums = ""; # combine the number of mappings for each segment for printing
+  foreach my $hsh (@numBest) {
+    $uniqNums .= "," if ($uniqNums ne "");
+    $uniqNums .= scalar(keys %$hsh);
+  }
+  return("$indNum\>$uniqNums\>$nextDiff");
 }
 
 # compare two alignments first by alignment score
