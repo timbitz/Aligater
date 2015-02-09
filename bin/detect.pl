@@ -31,8 +31,8 @@ use SequenceBasics qw(maskstr revComp);
 our $COORDEXPAND = 100; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMMENDED!
-our $HYBRID_PENALTY = -64; # this should be optimized.
-our $ANTISENSE_PENALTY = -24; #so should this
+our $HYBRID_PENALTY = -56; # this should be optimized.
+our $ANTISENSE_PENALTY = -24; #so should this  #DEPRECATED VARIABLE 2/2015
 
 our %GENEFAM;  # load this from anno/Species.gene_families.txt;
 our $GENEANNO;  # GeneAnnot object if --gtf=s is used to specify genome coordinates
@@ -449,24 +449,28 @@ sub getHybridCode {
 
 # this function's purpose is to determine how much better the maximal alignment score is
 # from the next best alignment score, and how many if any alignments have the equivalnt score
-# as the maximum.  It returns this as two scalars ( indNum, nextDiff )
+# as the maximum.  #It returns this as two scalars ( indNum, nextDiff )
 sub chimeraUniqueness {
   my($sortAlnArr, $alnHash) = @_;
   my $indNum = 0;  # keep track of the number of alignments with the same maximal score
   my $bestScore = $alnHash->{ $sortAlnArr->[0] }->[0]; # record best score.
   my $nextDiff = $bestScore; # find the difference between the max score and the next best score.
   my(@numBest); # this is filled with hashes to record the number of best alns for each mapping segment
-  for(my $i = 0; $i < scalar(split(/\:/, $sortAlnArr->[0])); $i++) {
+  my(@segNum) = split(/\:/, $sortAlnArr->[0]);
+  for(my $i = 0; $i < scalar(@segNum); $i++) {
     push(@numBest, {}); # push empty hash
   }
-  for(my $i = 1; $i < scalar(@$sortAlnArr); $i++) {
+ # my $uniqNums ="";
+  for(my $i = 0; $i < scalar(@$sortAlnArr); $i++) {
     my $k = $sortAlnArr->[$i];
+    #$uniqNums = "$uniqNums\n$k\t$alnHash->{$sortAlnArr->[$i]}->[5] ";  -- For debugging only.
     my $curScore = $alnHash->{$k}->[0];
     if($curScore == $bestScore or !defined($curScore)) {
       $indNum++;
-      my(@alnKeys) = split(/\:/, $k); # add the keys to the numBest record
+      my(@alnKeys) = split(/\:-\:/, $alnHash->{$sortAlnArr->[$i]}->[5]); # add the keys to the numBest record
       for(my $keyIt = 0; $keyIt < scalar(@alnKeys); $keyIt++) {
-        $numBest[$keyIt]->{$alnKeys[$keyIt]} = "";
+        my(@db) = split(/\_/, $alnKeys[$keyIt]);
+        $numBest[$keyIt]->{$db[2]} = "";
       }
       next;
     } else {
@@ -476,10 +480,10 @@ sub chimeraUniqueness {
   }
   my $uniqNums = ""; # combine the number of mappings for each segment for printing
   foreach my $hsh (@numBest) {
-    $uniqNums .= "," if ($uniqNums ne "");
-    $uniqNums .= scalar(keys %$hsh);
+    $uniqNums = "$uniqNums," if ($uniqNums ne "");
+    $uniqNums = "$uniqNums" . scalar(keys %$hsh);
   }
-  return("$indNum\>$uniqNums\>$nextDiff");
+  return("$uniqNums\>$indNum\>$nextDiff");
 }
 
 # compare two alignments first by alignment score
