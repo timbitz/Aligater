@@ -66,7 +66,8 @@ my $looseOpt = 0;
 
 GetOptions("gc=f" => \$gcLimit, 
            "mono=i" => \$bpMonoLimit,
-           "mapq=s" => \$mapqMaxMin,
+           "mqstd=s" => \$mapqMaxMin,
+           "mqpref=s" => \$mapqPrefix,
            "p=i" => \$threads, 
            "strict" => \$strictOpt,
            "loose" => \$looseOpt,
@@ -142,14 +143,24 @@ if($RUNRACTIP) {
 }
 #---------------------------------------------------------#
 
-# parse options
+# Parse LIGQ Options -------------------------------------#
 my($mapqIdent, $mapqDiff) = split(/\>/, $mapqMaxMin);
 my $mapqSing = ($mapqIdent =~ /\((\d+)\)/);
 $mapqIdent =~ s/\(\d+\)//;
 $mapqSing = "Inf" if($mapqSing eq "");
 unless(defined($mapqIdent) and defined($mapqDiff) and isInt($mapqIdent) and isInt($mapqDiff)) {
-  explode "Improper `--mapq` format! INT>INT or INT(INT)>INT !\n";
+  explode "Improper `--mqstd` format! INT>INT or INT(INT)>INT !\n";
 }
+my $mapqPrefHash = {};
+my(@keySets) = split(/\,/, $mapqPrefix);
+foreach my $set (@keySets) {
+  my($k,$v) = ($set =~ /\[(\S+)\=(\d+)\]/);
+  unless(defined($k) and defined($v) and isInt($v)) {
+    explode "Improper `--mqpref` format! \'[biotype-here=int],[optional-bio=int]'\n";
+  }
+  $mapqPrefHash->{$k} = $v;
+}
+# ------------------------------------------------------- #
 
 ## Set up fork manager;
 my $pm = Parallel::ForkManager->new($threads, $tmpPath);
