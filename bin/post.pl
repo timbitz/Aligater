@@ -83,13 +83,13 @@ if($strictOpt) {
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
   $mapqMaxMin = "10(0)>5";
-  $mapqPrefix = "[protein-coding_NA=1]";
+  $mapqPrefSet = "[protein-coding_NA=1]";
   $unalnEdge = 12;
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
   $mapqMaxMin = "50(0)>5";
-  $mapqPrefix = "[protein-coding_NA=1]";
+  $mapqPrefSet = "[protein-coding_NA=1]";
   $unalnEdge = 18; 
 }
 
@@ -144,8 +144,11 @@ if($RUNRACTIP) {
 
 # parse options
 my($mapqIdent, $mapqDiff) = split(/\>/, $mapqMaxMin);
+my $mapqSing = ($mapqIdent =~ /\((\d+)\)/);
+$mapqIdent =~ s/\(\d+\)//;
+$mapqSing = "Inf" if($mapqSing eq "");
 unless(defined($mapqIdent) and defined($mapqDiff) and isInt($mapqIdent) and isInt($mapqDiff)) {
-  explode "Improper `--mapq` format! INT>INT !\n";
+  explode "Improper `--mapq` format! INT>INT or INT(INT)>INT !\n";
 }
 
 ## Set up fork manager;
@@ -185,8 +188,6 @@ while(my $l = <>) {
   $gcSeq =~ s/\_//g;
   my $gcContent = gcContent($gcSeq);
 
-  my($mapqLeft, $mapqRight) = split(/\>/, $a[$mapqIndex]);
-
   # HARD FILTERS ----------------------------------------------------#
   # mononucleotide tract filter
   my $hardFilt = 0;
@@ -194,8 +195,15 @@ while(my $l = <>) {
   $hardFilt++ if length($seq) < 45; # need at least 22bp on either side.
   $hardFilt++ if $gcContent >= $gcLimit; # greater than limit of gc content
   $hardFilt++ if defined($pattFilter) and $l =~ /$pattFilter/;  #option specific filter.
+
+  # filter based on ligq
+  my($mapqFore, $mapqLeft, $mapqRight) = split(/\>/, $a[$mapqIndex]);
+  my $mapqParen = ($mapqLeft =~ /\((\d+)\)/);
+  $mapqLeft =~ s/\(\d+\)//;
+  $mapqParen = 0 if($mapqParen eq "");
   $hardFilt++ if $mapqLeft > $mapqIdent;
   $hardFilt++ if $mapqRight < $mapqDiff;
+  $hardFilt++ if $mapqParen > $mapqSing;
 
   $pm->finish if($hardFilt and $threads > 1); # if threads > 1
   next if $hardFilt;  # if threads == 1
