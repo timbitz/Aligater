@@ -47,7 +47,9 @@ my $bpMonoLimit = "Inf";
 my $gcLimit = 1;
 my $pattFilter;
 my $threads = 1;
-my $mapqMaxMin = "Inf>0";  #no filter.
+my $mapqMaxMin = "Inf(Inf)>0";  #no filter.
+my $mapqPrefix = ""; # no filter
+my $unalnEdge = "Inf"; # no max unaln regions
 
 ##########################
 my $seqIndex = 10;       # hardcoded... for .lig format.
@@ -80,11 +82,15 @@ if($strictOpt) {
   $interCrossLimit = 1;
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
-  $mapqMaxMin = "10>5";
+  $mapqMaxMin = "10(0)>5";
+  $mapqPrefix = "[protein-coding_NA=1]";
+  $unalnEdge = 12;
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
-  $mapqMaxMin = "50>5";
+  $mapqMaxMin = "50(0)>5";
+  $mapqPrefix = "[protein-coding_NA=1]";
+  $unalnEdge = 18; 
 }
 
 if($fullOpt) {

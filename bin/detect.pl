@@ -31,7 +31,7 @@ use SequenceBasics qw(maskstr revComp);
 our $COORDEXPAND = 100; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMMENDED!
-our $HYBRID_PENALTY = -56; # this should be optimized.
+our $HYBRID_PENALTY = -24; # this should be optimized.
 our $ANTISENSE_PENALTY = -24; #so should this  #DEPRECATED VARIABLE 2/2015
 
 our %GENEFAM;  # load this from anno/Species.gene_families.txt;
@@ -59,8 +59,12 @@ GetOptions("o=s" => \$outputCore,
            "noanti" => \$STRAND_SPECIFIC, #TODO
            "gfam=s" => \$geneFamFile,
            "gtf=s" => \$gtfFile,
-           "rmsk=s" => \$rmskFile
+           "rmsk=s" => \$rmskFile,
+           "pen=i" => \$HYBRID_PENALTY
 );
+
+# make sure this is negative.
+$HYBRID_PENALTY *= -1 if($HYBRID_PENALTY > 0);
 
 my $nonHybHndl;
 my $hybHndl; # alignment output filehandles.
@@ -461,7 +465,7 @@ sub chimeraUniqueness {
   for(my $i = 0; $i < scalar(@segNum); $i++) {
     push(@numBest, {}); # push empty hash
   }
- # my $uniqNums ="";
+  my $singles = 0;
   for(my $i = 0; $i < scalar(@$sortAlnArr); $i++) {
     my $k = $sortAlnArr->[$i];
     #$uniqNums = "$uniqNums\n$k\t$alnHash->{$sortAlnArr->[$i]}->[5] ";  -- For debugging only.
@@ -469,6 +473,7 @@ sub chimeraUniqueness {
     if($curScore >= $bestScore - $MINDIFF or !defined($curScore)) {
       $indNum++;
       my(@alnKeys) = split(/\:-\:/, $alnHash->{$sortAlnArr->[$i]}->[5]); # add the keys to the numBest record
+      ($singles++ and next) if(scalar(@alnKeys) == 1); # IF non-hybrid alignment!!
       for(my $keyIt = 0; $keyIt < scalar(@alnKeys); $keyIt++) {
         my(@db) = split(/\_/, $alnKeys[$keyIt]);
         $numBest[$keyIt]->{$db[2]} = "";
@@ -485,6 +490,7 @@ sub chimeraUniqueness {
     $uniqNums = "$uniqNums," if ($uniqNums ne "");
     $uniqNums = "$uniqNums" . scalar(keys %$hsh);
   }
+  $indNum = "$indNum\($singles\)" if($singles);
   return("$uniqNums\>$indNum\>$nextDiff");
 }
 
