@@ -52,8 +52,9 @@ my $mapqPrefix = ""; # no filter
 my $unalnEdge = "Inf"; # no max unaln regions
 
 ##########################
-my $seqIndex = 10;       # hardcoded... for .lig format.
-my $mapqIndex = 12; #
+my $seqIndex     = 10;   # hardcoded... for .lig format.
+my $mapqIndex    = 12;   #
+my $repTypeIndex = 8     #
 ##########################
 
 my $interCrossLimit = 0;
@@ -215,6 +216,7 @@ while(my $l = <>) {
   $hardFilt++ if $mapqLeft > $mapqIdent;
   $hardFilt++ if $mapqRight < $mapqDiff;
   $hardFilt++ if $mapqParen > $mapqSing;
+  $hardFilt++ if testMapqPref($mapqFore, $a[$biotypeIndex], $a[$repTypeIndex], $mapqPrefHash);
 
   $pm->finish if($hardFilt and $threads > 1); # if threads > 1
   next if $hardFilt;  # if threads == 1
@@ -380,6 +382,28 @@ sub countDiagU {
     $xlinkHash->{$offset + $i+1} = 1 if($b =~ /u|U/ and $c =~ /u|U/);
   }
   #return void. 
+}
+
+# this function tests the number of uniquely mappable targets
+# for a given segment of the read provided that there is an encoded
+# stipulation for that biotype and repeat class from --mqpref
+# e.g. given stipulation [protein-coding_NA=x], we test whether
+# a given chimeric segment mapping to a `protein-coding` biotype
+# has at most x number of targets it maps to within the specified
+# qual range.
+sub testMapqPref {
+  my($foreStr, $bioStr, $repStr, $mapqPrefHash) = @_; 
+  my(@fore) = split(/\,/, $foreStr);
+  my(@bio)  = split(/\:/, $bioStr);
+  my(@rep)  = split(/\:/, $repStr);
+  for(my $i=0; $i < scalar(@bio); $i++) {
+    next unless (defined($bio[$i]) and defined($rep[$i]) and defined($fore[$i]);
+    my $iStr = "$bio[$i]\_$rep[$i]";
+    return 1 if(defined($mapqPreHash->{$iStr}) and $fore[$i] > $mapqPreHash->{$iStr});
+    return 1 if(defined($mapqPreHash->{$bio[$i]}) and $fore[$i] > $mapqPreHash->{$bio[$i]});
+    return 1 if(defined($mapqPreHash->{$rep[$i]}) and $fore[$i] > $mapqPreHash->{$rep[$i]});
+  }
+  return 0;
 }
 
 # used by the runRactIP program.
