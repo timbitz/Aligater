@@ -40,6 +40,9 @@ my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
 my $GENOMECOORD;
 
+my $NIBDIR = ""; # if dir exists then use nibFrag to get under ligation site
+my $NIBRANGE = 35;
+
 my $blastDb = "human_genomic,other_genomic,nt";
 
 # defaults are the lack there of
@@ -56,6 +59,8 @@ my $seqIndex     = 10;   # hardcoded... for .lig format.
 my $mapqIndex    = 12;   #
 my $biotypeIndex = 7;    #
 my $repTypeIndex = 8;    #
+my $ensTranIndex = 5;    #
+my $refPosIndex  = 13;   #
 ##########################
 
 my $interCrossLimit = 0;
@@ -77,8 +82,7 @@ GetOptions("gc=f" => \$gcLimit,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
            "nib=s" => \$NIBDIR,
-           "lrange=i" => \$NIBRANGELO,
-           "hrange=i" => \$NIBRANGEHI
+           "nibrange=i" => \$NIBRANGE
 );
 
 #set hard filters
@@ -230,6 +234,18 @@ while(my $l = <>) {
   my($seqA, $seqB) = split(/\_/, $seq); 
 
   my($dG, $strA, $strB, $len, $amt) = ("","","","","");
+
+  # we have to fetch the sequence under the ligation site...
+  if(defined($NIBDIR)) {
+     my(@ensTran) = split(/\:/, $a[$ensTranIndex]);
+     my(@refPos)  = split(/\,/, $a[$refPosIndex]);
+     my(@refLen)  = split(/\,/, $a[$refPosIndex+2]);
+     my $addA = fetchTransNib($NIBDIR, $ensTran[0], $refPos[0]+$refLen[0], $refPos[0]+$refLen[0]+$NIBRANGE);
+     my $addB = fetchTransNib($NIBDIR, $ensTran[1], min($refPos[1]-$NIBRANGE,0), $NIBRANGE);
+     $seqA = "$seqA$addA";
+     $seqB = "$addB$seqB";
+     print STDERR "\n\nSTDERR:$seqA\_$seqB\n";
+  }
 
   if($RUNRACTIP) {
     ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, undef);
@@ -409,6 +425,18 @@ sub testMapqPref {
     return 1 if(defined($mapqPrefHash->{$rep[$i]}) and $fore[$i] > $mapqPrefHash->{$rep[$i]});
   }
   return 0;
+}
+
+sub fetchTransNib {
+  my($nibDir, $ensId, $start, $stop) = @_;
+  my(@out) = `nibFrag $nibDir/$ensId.nib $start $stop + stdout 2>&1`;
+  if($out[0] =~ /^nib/) {
+    my $newStop = ($out[0] =~ /\(\d+\s(\d+)\)/);
+    fetchTransNib($nibDir, $ensId, $start, $newStop - $start - 1);
+  }
+  shift @out;
+  chomp @out;
+  return(lc(join("", @out)));
 }
 
 # used by the runRactIP program.
