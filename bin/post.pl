@@ -54,7 +54,8 @@ my $unalnEdge = "Inf"; # no max unaln regions
 ##########################
 my $seqIndex     = 10;   # hardcoded... for .lig format.
 my $mapqIndex    = 12;   #
-my $repTypeIndex = 8     #
+my $biotypeIndex = 7;    #
+my $repTypeIndex = 8;    #
 ##########################
 
 my $interCrossLimit = 0;
@@ -85,13 +86,13 @@ if($strictOpt) {
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
   $mapqMaxMin = "10(0)>5";
-  $mapqPrefSet = "[protein-coding_NA=1]";
+  $mapqPrefix = "[protein-coding_NA=1],$mapqPrefix";
   $unalnEdge = 12;
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
   $mapqMaxMin = "50(0)>5";
-  $mapqPrefSet = "[protein-coding_NA=1]";
+  $mapqPrefix = "[protein-coding_NA=1],$mapqPrefix";
   $unalnEdge = 18; 
 }
 
@@ -147,12 +148,13 @@ if($RUNRACTIP) {
 # Parse LIGQ Options -------------------------------------#
 my($mapqIdent, $mapqDiff) = split(/\>/, $mapqMaxMin);
 my $mapqSing = ($mapqIdent =~ /\((\d+)\)/);
-$mapqIdent =~ s/\(\d+\)//;
+$mapqIdent =~ s/\((\d+|Inf)\)//;
 $mapqSing = "Inf" if($mapqSing eq "");
-unless(defined($mapqIdent) and defined($mapqDiff) and isInt($mapqIdent) and isInt($mapqDiff)) {
-  explode "Improper `--mqstd` format! INT>INT or INT(INT)>INT !\n";
+unless(defined($mapqIdent) and defined($mapqDiff)) {
+  explode "Improper `--mqstd` format $mapqIdent\>$mapqDiff! INT>INT or INT(INT)>INT !\n";
 }
 my $mapqPrefHash = {};
+$mapqPrefix =~ s/^\,+|\,+$//g;
 my(@keySets) = split(/\,/, $mapqPrefix);
 foreach my $set (@keySets) {
   my($k,$v) = ($set =~ /\[(\S+)\=(\d+)\]/);
@@ -397,11 +399,11 @@ sub testMapqPref {
   my(@bio)  = split(/\:/, $bioStr);
   my(@rep)  = split(/\:/, $repStr);
   for(my $i=0; $i < scalar(@bio); $i++) {
-    next unless (defined($bio[$i]) and defined($rep[$i]) and defined($fore[$i]);
+    next unless (defined($bio[$i]) and defined($rep[$i]) and defined($fore[$i]));
     my $iStr = "$bio[$i]\_$rep[$i]";
-    return 1 if(defined($mapqPreHash->{$iStr}) and $fore[$i] > $mapqPreHash->{$iStr});
-    return 1 if(defined($mapqPreHash->{$bio[$i]}) and $fore[$i] > $mapqPreHash->{$bio[$i]});
-    return 1 if(defined($mapqPreHash->{$rep[$i]}) and $fore[$i] > $mapqPreHash->{$rep[$i]});
+    return 1 if(defined($mapqPrefHash->{$iStr}) and $fore[$i] > $mapqPrefHash->{$iStr});
+    return 1 if(defined($mapqPrefHash->{$bio[$i]}) and $fore[$i] > $mapqPrefHash->{$bio[$i]});
+    return 1 if(defined($mapqPrefHash->{$rep[$i]}) and $fore[$i] > $mapqPrefHash->{$rep[$i]});
   }
   return 0;
 }
