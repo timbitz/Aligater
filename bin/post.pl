@@ -76,6 +76,9 @@ GetOptions("gc=f" => \$gcLimit,
            "full" => \$fullOpt,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
+           "nib=s" => \$NIBDIR,
+           "lrange=i" => \$NIBRANGELO,
+           "hrange=i" => \$NIBRANGEHI
 );
 
 #set hard filters
