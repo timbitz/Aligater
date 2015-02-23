@@ -40,7 +40,7 @@ my $RUNBLAST = 0;
 my $RUNRACTIP = 0;
 my $GENOMECOORD;
 
-my $NIBDIR = ""; # if dir exists then use nibFrag to get under ligation site
+my $NIBDIR; # if dir exists then use nibFrag to get under ligation site
 my $NIBRANGE = 35;
 
 my $blastDb = "human_genomic,other_genomic,nt";
@@ -84,6 +84,8 @@ GetOptions("gc=f" => \$gcLimit,
            "nib=s" => \$NIBDIR,
            "nibrange=i" => \$NIBRANGE
 );
+
+$NIBDIR = abs_path($NIBDIR) if(defined($NIBDIR));
 
 #set hard filters
 if($strictOpt) {
@@ -240,16 +242,20 @@ while(my $l = <>) {
      my(@ensTran) = split(/\:/, $a[$ensTranIndex]);
      my(@refPos)  = split(/\,/, $a[$refPosIndex]);
      my(@refLen)  = split(/\,/, $a[$refPosIndex+2]);
-     my $addA = fetchTransNib($NIBDIR, $ensTran[0], $refPos[0]+$refLen[0], $refPos[0]+$refLen[0]+$NIBRANGE);
-     my $addB = fetchTransNib($NIBDIR, $ensTran[1], min($refPos[1]-$NIBRANGE,0), $NIBRANGE);
-     $seqA = "$seqA$addA";
-     $seqB = "$addB$seqB";
-     print STDERR "\n\nSTDERR:$seqA\_$seqB\n";
+     my $startA = $refPos[0] + $refLen[0] - 1;
+     my $stopA = $startA + $NIBRANGE;
+     my $startB = max( $refPos[1] - $NIBRANGE, 0 );
+     my $stopB = $refPos[1] - 1;
+     my $addA = fetchTransNib($NIBDIR, $ensTran[0], $startA, $stopA);
+     my $addB = fetchTransNib($NIBDIR, $ensTran[1], $startB, $stopB);
+     $seqA = "$seqA$addA" if($addA);
+     $seqB = "$addB$seqB" if($addB);
+  #   print STDERR "\n\nSTDERR:$seqA\_$seqB\n";     
   }
 
   if($RUNRACTIP) {
     ($dG, $strA, $strB, $len, $amt) = runRactIP($seqA, $seqB, undef);
-
+    
     # DEPRECATED: for debugging:
     # my($dG_ua, $strA_ua, $strB_ua, $len_ua) = runRactIP($seqA, $seqB, "$libPath/rna_andronescu2007_ua.par");
 
@@ -261,6 +267,11 @@ while(my $l = <>) {
       $pm->finish if($hardFilt and $threads > 1); # if threads > 1
       next if $hardFilt;  # if threads == 1
     }
+    #------------------------------------------------------------------#
+
+    #-- Perform some string operations on the struct before printing --#
+    my($ogSeqA, $ogSeqB)
+    
     #------------------------------------------------------------------#
   }
   my($key, $mid, $val);
@@ -276,7 +287,8 @@ while(my $l = <>) {
 #      $toFilter{"LIG_$."} = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
       $key = "LIG_$.";
       $mid = "$leftLig\:$rightLig\n$ligString\n";
-      $val = "$l\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n";
+      $val = "$l";
+      $val .= "\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n" if($RUNRACTIP);
       #print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligString\n";
     }
   } else { # no need to waste memory, lets just print as we go. 
@@ -326,12 +338,14 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 # properly installed or of the correct version
 sub runRactIP {
   my($seqA, $seqB, $param) = @_;
+  $seqA = uc($seqA);
+  $seqB = uc($seqB);
   $seqA =~ s/T/U/g if($seqA =~ /T/);
   $seqB =~ s/T/U/g if($seqB =~ /T/);
   my $rand = substr(md5_hex($.), 0, 12);   
   system("echo \">seqA\n$seqA\n>seqB\n$seqB\" > $tmpPath/$rand\_seq.fa"); 
   $param = defined($param) ? "-P $param" : "";
-  my(@res) = `ractip $tmpPath/$rand\_seq.fa -e $param`;
+  my(@res) = `ractip $tmpPath/$rand\_seq.fa --max-w=30 -e $param`;
   system("rm $tmpPath/$rand\_seq.fa");
   chomp @res;
   my($structA, $structB) = ($res[2], $res[5]); #set structures
@@ -429,14 +443,17 @@ sub testMapqPref {
 
 sub fetchTransNib {
   my($nibDir, $ensId, $start, $stop) = @_;
+  return("") unless(isInt($start) and $start >= 0 and isInt($stop) and $stop > 0);
   my(@out) = `nibFrag $nibDir/$ensId.nib $start $stop + stdout 2>&1`;
-  if($out[0] =~ /^nib/) {
-    my $newStop = ($out[0] =~ /\(\d+\s(\d+)\)/);
-    fetchTransNib($nibDir, $ensId, $start, $newStop - $start - 1);
+#  print STDERR "$start\:$stop-@out\n";
+  if($out[0] =~ /^nib.*file\s\(\d+\s(\d+)\)/) {
+    $stop = $1;
+    return(fetchTransNib($nibDir, $ensId, $start, $stop));
   }
   shift @out;
   chomp @out;
-  return(lc(join("", @out)));
+  my $retVal = lc(join("", @out));
+  return($retVal =~ /^[atgcu]+$/ ? $retVal : "");
 }
 
 # used by the runRactIP program.
