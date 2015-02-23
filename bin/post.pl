@@ -232,8 +232,8 @@ while(my $l = <>) {
   $pm->finish if($hardFilt and $threads > 1); # if threads > 1
   next if $hardFilt;  # if threads == 1
   #------------------------------------------------------------------#
-
-  my($seqA, $seqB) = split(/\_/, $seq); 
+  my(@seqSplit) = split(/\_/, $seq);  
+  my($seqA, $seqB) = @seqSplit; 
 
   my($dG, $strA, $strB, $len, $amt) = ("","","","","");
 
@@ -270,8 +270,17 @@ while(my $l = <>) {
     #------------------------------------------------------------------#
 
     #-- Perform some string operations on the struct before printing --#
-    my($ogSeqA, $ogSeqB)
-    
+    $strA = adjustStruct($strA, $seqA); # 0 for anchor left, not right
+    $strB = adjustStruct($strB, $seqB); # 1 for anchor right not left
+    #-- add pipe to denote ligation site
+    if((my $diff = length($strA) - length($seqSplit[0])) > 0) {
+      my $pipePos = length($strA) - $diff;
+      substr($strA, $pipePos, 0, "|");
+    }
+    if((my $diff = length($strB) - length($seqSplit[1])) > 0) {
+      my $pipePos = $diff + 1;
+      substr($strB, $pipePos, 0, "|");
+    }
     #------------------------------------------------------------------#
   }
   my($key, $mid, $val);
@@ -417,6 +426,18 @@ sub countDiagU {
     $xlinkHash->{$offset + $i+1} = 1 if($b =~ /u|U/ and $c =~ /u|U/);
   }
   #return void. 
+}
+
+sub adjustStruct {
+  my($struct, $seq) = @_;
+  my($lenStr, $lenSeq) = (length($struct), length($seq));
+    # now substitute ]]] or [[[ notation with interacting sequence.
+  while ($struct =~ /[\[\]]+/g) {
+    my $curMat = substr($seq, $-[0], length($&));
+    substr($struct, $-[0], length($&), $curMat)
+  }
+  $struct =~ tr/tT/uU/; 
+  return($struct);
 }
 
 # this function tests the number of uniquely mappable targets
