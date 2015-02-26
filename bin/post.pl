@@ -57,8 +57,8 @@ my $unalnEdge = "Inf"; # no max unaln regions
 ##########################
 my $seqIndex     = 10;   # hardcoded... for .lig format.
 my $mapqIndex    = 12;   #
-my $biotypeIndex = 7;    #
-my $repTypeIndex = 8;    #
+my $biotypeIndex = 6;    #
+my $repTypeIndex = 7;    #
 my $ensTranIndex = 5;    #
 my $refPosIndex  = 13;   #
 ##########################
@@ -95,13 +95,13 @@ if($strictOpt) {
   $interStemLimit = 5;
   $pattFilter = "Low|Simple_repeat";
   $mapqMaxMin = "10(0)>5";
-  $mapqPrefix = "[protein-coding_NA=1],$mapqPrefix";
+  $mapqPrefix = "[protein-coding=1],$mapqPrefix";
   $unalnEdge = 12;
 } elsif($looseOpt) {
   $gcLimit = 0.85;
   $bpMonoLimit = 9;
   $mapqMaxMin = "50(0)>5";
-  $mapqPrefix = "[protein-coding_NA=1],$mapqPrefix";
+  $mapqPrefix = "[protein-coding=1],$mapqPrefix";
   $unalnEdge = 18; 
 }
 
@@ -228,6 +228,7 @@ while(my $l = <>) {
   $hardFilt++ if $mapqRight < $mapqDiff;
   $hardFilt++ if $mapqParen > $mapqSing;
   $hardFilt++ if testMapqPref($mapqFore, $a[$biotypeIndex], $a[$repTypeIndex], $mapqPrefHash);
+#  reverb "$mapqFore\t$a[$repTypeIndex]\tkeys %$mapqPrefHash\n";
 
   $pm->finish if($hardFilt and $threads > 1); # if threads > 1
   next if $hardFilt;  # if threads == 1
