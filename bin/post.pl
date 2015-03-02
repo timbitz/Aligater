@@ -298,7 +298,7 @@ while(my $l = <>) {
       $key = "LIG_$.";
       $mid = "$leftLig\:$rightLig\n$ligString\n";
       $val = "$l";
-      $val .= "\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n" if($RUNRACTIP);
+      $val .= ($RUNRACTIP) ? "\t$gcContent\t$strA\t$strB\t$dG\t$len\t$amt\n" : "\n";
       #print FORBLAST ">LIG_$.\:$leftLig\:$rightLig\n$ligString\n";
     }
   } else { # no need to waste memory, lets just print as we go. 
