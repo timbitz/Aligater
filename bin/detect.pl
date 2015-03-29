@@ -49,13 +49,18 @@ my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 my $base64Flag = 0;
 my $suppressAlnFlag = 0;
 
+# this variable suppresses chimeric output in favor of non-chimeric reads
+# in the same format.
+my $nonChimeraFlag = 0; 
+
 my $gtfFile; #undef by default
 my $geneFamFile;
 my $rmskFile;
 
 GetOptions("o=s" => \$outputCore, 
            "base" => \$base64Flag,
-           "noaln" => \$suppressAlnFlag,
+           "noaln" => \$suppressAlnFlag, 
+	   "nochim" => \$nonChimeraFlag,
            "noanti" => \$STRAND_SPECIFIC, #TODO
            "gfam=s" => \$geneFamFile,
            "gtf=s" => \$gtfFile,
@@ -159,7 +164,7 @@ while(my $l = <>) {
     my($bestK) = $alnKeys[0];
     if(defined $bestK) {
       if($bestK =~ /\:/) { # chimeric read
-        my $hybrid = getHybridFormat(\@alnKeys, $alnHash);
+        my $hybrid = getHybridFormat(\@alnKeys, $alnHash) unless($nonChimeraFlag);
         my(@alns) = split(/\:/, $bestK);
         foreach my $al (@alns) {
           my $aRef = $alnHash->{$al};
@@ -167,6 +172,7 @@ while(my $l = <>) {
           print $hybHndl "$samOutput\n" unless $suppressAlnFlag;
         }
       } else { #non-chimeric read
+        my $UNUSED = getHybridFormat(\@alnKeys, $alnHash) if($nonChimeraFlag);
         my $aRef = $alnHash->{$bestK};
         my $samOutput = join("\t", @$aRef[3 .. $#$aRef]);
         print $nonHybHndl "$samOutput\n" unless $suppressAlnFlag; # best non-chimeric alignments
@@ -323,7 +329,8 @@ sub getHybridFormat {
     my($repName, $repFamily, $repClass) = ("NA", "NA", "NA");
     if(defined($genomePos)) {  # if genome position exists...
       if(defined($LOCALANNO)) {
-        my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+1, $genomeRan]);
+        # as of 3/2015 we look +/- 15bp from the genomePos to check for repeat overlap.
+        my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos-15, $genomePos+15, $genomeRan]);
         # get name of local bed entry if exists
         my($resCoord, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
         # NOTE: ordered based on selected fields at UCSC!!
