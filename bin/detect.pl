@@ -451,10 +451,10 @@ sub getHybridCode {
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
         my $bAlias = $prefix[$j];
         # check if there is an equivalent alias at each locus.
-        ($overlap++ and print STDERR "\n$aAlias,$bAlias\n\n") if $GENEANNO->coorAliasLookup($bCoord, $aAlias);
-        ($overlap++ and print STDERR "\n$aAlias,$bAlias\n\n") if $GENEANNO->coorAliasLookup($aCoord, $bAlias);
         # check if coordinates overlap
-        $overlap++ if coorOverlap($aCoord, $bCoord);
+        $overlap++ if (coorOverlap($aCoord, $bCoord) or 
+                       $GENEANNO->coorAliasLookup($bCoord, $aAlias) or
+                       $GENEANNO->coorAliasLookup($aCoord, $bAlias) );
         $antisense++ if $aRan ne $bRan;
       }
     }
