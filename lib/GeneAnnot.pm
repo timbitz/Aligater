@@ -26,6 +26,8 @@ our @ISA = qw(Exporter);
 # will save memory. 
 our %EXPORT_TAGS = ( 'all' => [ qw( 
    load_GFF_or_GTF
+   initGeneLookup
+   coorAliasLookup
    printRefFlat
 ) ] ); 
  
@@ -33,6 +35,8 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw( 
   load_GFF_or_GTF
+  initGeneLookup
+  coorAliasLookup
   printRefFlat
 ); 
 
@@ -110,7 +114,7 @@ sub load_GFF_or_GTF {
 	# $GENE_CHILD{gene}->{transcript} = strand;
         $GENE_CHILD{$thisGene} = { $thisTrans => $t[6] }
       }
-      $GENE_ALIAS{$thisGene} = getAttribs($t[8], "gene_alias");
+      $GENE_ALIAS{$thisGene} = getAttribs($t[8], "gene_(name|alias)");
       $GENE_COORD{$thisGene} = [ $t[0], $t[3], $t[4], $t[6] ];
       # Don't do this again...
       $curGene = $thisGene;
@@ -251,6 +255,46 @@ sub toGenomeCoord {
       $cur += ($e - $s) + 1;
     }
   }
+}
+
+#
+# this function sets $self->{"CHR_BIN_GENE"}->{chr}->{bin}->{gene_alias}->[coord]
+#
+sub initGeneLookup {
+  my($self) = shift;
+  my(%chrBinLookup);
+  foreach my $geneId (keys %{$self->{"GENE_ALIAS"}}) {
+    my $coord = $self->{"GENE_COORD"}->{$geneId};
+    next unless defined $coord; # test if defined
+    my($chr, $pos) = parseRegion($coord);
+    my $bin = binFromRangeExtended($pos, $pos+2);
+    #initialize hash structure;
+    unless(defined($chrBinLookup{$chr})) {
+      $chrBinLookup{$chr} = {};
+    }
+    unless(defined($chrBinLookup{$chr}->{$bin})) {
+      $chrBinLookup{$chr}->{$bin} = {};
+    }
+    # now add each alias for lookup
+    foreach my $attr (keys %{$self->{"GENE_ALIAS"}->{$geneId}}) {
+      my $alias = $self->{"GENE_ALIAS"}->{$geneId}->{$attr};
+      next unless defined $alias;
+      $chrBinLookup{$chr}->{$bin}->{$alias} = $coord;
+    }
+  }
+  $self->{"CHR_BIN_GENE"} = \%chrBinLookup;
+}
+
+# this function assumes initGeneLookup has been run already.
+sub coorAliasLookup {
+  my($self, $coord, $alias) = @_;
+  my($chr, $pos) = parseRegion($coord);
+  my $bin = binFromRangeExtended($pos, $pos+2);
+  return undef unless (defined $chr and defined $bin);
+  return undef unless defined $alias;
+  my $lookupCoor = $self->{"CHR_BIN_GENE"}->{$chr}->{$bin}->{$alias};
+  return undef unless defined $lookupCoor;
+  return coorOverlap($lookupCoor, $coord);
 }
 
 ########################################################################################### 

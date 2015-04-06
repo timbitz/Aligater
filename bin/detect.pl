@@ -9,6 +9,7 @@
 # It is designed to be called by `aligater` which pipes to samtools for BAM
 # format if necessary, though this is not required with SAM input.
 
+
 use warnings;
 use strict;
 
@@ -95,6 +96,7 @@ sub reverb {
 if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
   $GENEANNO->load_GFF_or_GTF($gtfFile);
+  $GENEANNO->initGeneLookup();
 }
 # done loading GTF;
 
@@ -329,8 +331,8 @@ sub getHybridFormat {
     my($repName, $repFamily, $repClass) = ("NA", "NA", "NA");
     if(defined($genomePos)) {  # if genome position exists...
       if(defined($LOCALANNO)) {
-        # as of 3/2015 we look +/- 15bp from the genomePos to check for repeat overlap.
-        my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos-15, $genomePos+15, $genomeRan]);
+        # as of 3/2015 we look +25bp from the genomePos to check for repeat overlap.
+        my $resRef = $LOCALANNO->bedOverlap([$genomeChr, $genomePos, $genomePos+25, $genomeRan]);
         # get name of local bed entry if exists
         my($resCoord, $local) = split(/\t/, $resRef->[0]) if defined($resRef);
         # NOTE: ordered based on selected fields at UCSC!!
@@ -441,11 +443,17 @@ sub getHybridCode {
       next if $pos[$i] eq "NA";
       my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
       my $aCoord = [$aChr, $aPos-$COORDEXPAND, $aPos+$COORDEXPAND, $aRan];
+      my $aAlias = $prefix[$i];
       for(my $j = $i+1; $j < scalar(@pos); $j++) {
         next if $pos[$j] eq "NA";
         $compNum++;
         my($bChr, $bPos, $bRan) = split(/\:/, $pos[$j]);
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
+        my $bAlias = $prefix[$j];
+        # check if there is an equivalent alias at each locus.
+        ($overlap++ and print STDERR "\n$aAlias,$bAlias\n\n") if $GENEANNO->coorAliasLookup($bCoord, $aAlias);
+        ($overlap++ and print STDERR "\n$aAlias,$bAlias\n\n") if $GENEANNO->coorAliasLookup($aCoord, $bAlias);
+        # check if coordinates overlap
         $overlap++ if coorOverlap($aCoord, $bCoord);
         $antisense++ if $aRan ne $bRan;
       }
