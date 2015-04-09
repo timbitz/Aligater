@@ -29,7 +29,7 @@ use FuncBasics qw(isInt shove openFileHandle);
 use CoordBasics qw(coorOverlap parseRegion);
 use SequenceBasics qw(maskstr revComp);
 
-our $COORDEXPAND = 100; # this is the buffer range for overlapping genomic loci
+our $COORDEXPAND = 200; # this is the buffer range for overlapping genomic loci
 
 our $STRAND_SPECIFIC = 1; # transcriptome mapping.-->SETTING TO 0 IS NOT RECOMMENDED!
 our $HYBRID_PENALTY = -24; # this should be optimized.
@@ -83,6 +83,7 @@ unless($suppressAlnFlag) {
 sub explode {
   my $str = shift;
   chomp($str);
+  my $ln = defined($.) ? $. : "NA";
   die "[aligater detect]: (Input Line $.) ERROR $str\n";
 }
 
@@ -97,6 +98,8 @@ if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
   $GENEANNO->load_GFF_or_GTF($gtfFile);
   $GENEANNO->initGeneLookup();
+#  my $res = $GENEANNO->coorAliasLookup("chr11:93468200-93468600:-", "SNORA40");
+#  explode "TEST: $res\n";
 }
 # done loading GTF;
 
@@ -443,13 +446,13 @@ sub getHybridCode {
       next if $pos[$i] eq "NA";
       my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
       my $aCoord = [$aChr, $aPos-$COORDEXPAND, $aPos+$COORDEXPAND, $aRan];
-      my $aAlias = $prefix[$i];
+      my $aAlias = $g[$i];
       for(my $j = $i+1; $j < scalar(@pos); $j++) {
         next if $pos[$j] eq "NA";
         $compNum++;
         my($bChr, $bPos, $bRan) = split(/\:/, $pos[$j]);
         my $bCoord = [$bChr, $bPos-$COORDEXPAND, $bPos+$COORDEXPAND, $bRan];
-        my $bAlias = $prefix[$j];
+        my $bAlias = $g[$j];
         # check if there is an equivalent alias at each locus.
         # check if coordinates overlap
         $overlap++ if (coorOverlap($aCoord, $bCoord) or 
