@@ -442,6 +442,7 @@ sub getHybridCode {
     my $overlap = 0;
     my $compNum = 0;
     my $antisense = 0;
+    my $paralog = 0;
     for(my $i=0; $i < scalar(@pos) - 1; $i++) {
       next if $pos[$i] eq "NA";
       my($aChr, $aPos, $aRan) = split(/\:/, $pos[$i]);
@@ -455,8 +456,8 @@ sub getHybridCode {
         my $bAlias = $g[$j];
         # check if there is an equivalent alias at each locus.
         # check if coordinates overlap
-        $overlap++ if (coorOverlap($aCoord, $bCoord) or 
-                       $GENEANNO->coorAliasLookup($bCoord, $aAlias) or
+        $overlap++ if coorOverlap($aCoord, $bCoord); 
+        $paralog++ if ($GENEANNO->coorAliasLookup($bCoord, $aAlias) or
                        $GENEANNO->coorAliasLookup($aCoord, $bAlias) );
         $antisense++ if $aRan ne $bRan;
       }
@@ -465,6 +466,7 @@ sub getHybridCode {
     if($overlap == $compNum and $overlap > 0) { # then this is the same locus
       $code = $antisense ? "A" : "S"; #TODO TEST
     }
+    $code = "P" if $paralog == $compNum and $paralog > 0;
   }
   return($code, $geneFamStruc);
 }
