@@ -98,8 +98,6 @@ if(defined($gtfFile)) {
   $GENEANNO = new GeneAnnot;
   $GENEANNO->load_GFF_or_GTF($gtfFile);
   $GENEANNO->initGeneLookup();
-#  my $res = $GENEANNO->coorAliasLookup("chr11:93468200-93468600:-", "SNORA40");
-#  explode "TEST: $res\n";
 }
 # done loading GTF;
 

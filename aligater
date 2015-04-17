@@ -70,7 +70,7 @@ if(!defined($subCommand) or
   $printUsage = 1;
 }
 
-if($helpFlag or $printUsage) {
+if(($helpFlag or $printUsage) and $subCommand !~ /align|detect|post|stats/) {
   if(defined($subCommand) and $subCommand eq "align") {
     die "Usage: $0 align [options] -x <bowtie2_db> input.[fq|fa][.gz] > output.[sam|bam]
     ";
@@ -120,7 +120,11 @@ if($subCommand eq "align") {
     print POST;
   }
   close POST;
-}
+} elsif($subCommand eq "stats") {
+  system("bash", "-c", "which julia > /dev/null 2> /dev/null") and
+        die "[aligater]: Please download/install 'julia' to path!\n";  
+  system("bash", "-c", "$path/bin/stats.jl @ARGV");
+}  
 
 exit $EXIT_STATUS >> 8;
 
