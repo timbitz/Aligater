@@ -170,6 +170,7 @@ end #--> Dict{(String,String), Tuple}
 # if the pairs 
 function loadInteractionFile(io::IOStream, gInd::Int, cntInd::Int, col, reg)
   cset = Dict{Tuple,Float64}()
+  sizehint!(cset, 100000) # allocate 100K pairs
   for l::ASCIIString in eachline( io )
     s = split(chomp(l), '\t')
     if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
@@ -187,6 +188,7 @@ end #--> Dict{Tuple,Float64}
 # this does io and creates a cset structure of type Dict
 function loadBackgroundFile(io::IOStream, ind::Int; keyType=String, valType=Float64)
   cset = Dict{keyType,valType}()
+  sizehint!(cset, 20000) # approx number of genes
   for i::ASCIIString in eachline(io)
     s = split(chomp(i), '\t')
     #=genes = replace(s[ind], ":*NA:*", "") |> x->split(x, ':')
@@ -221,9 +223,7 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
     Any
   end #--> Type{T}
   
-  function isOrdered( t::Tuple )
-   length(t) <= 1 || t[1] <= t[2] ? true : false
-  end #-->Bool
+  isOrdered( t::Tuple ) = length(t) <= 1 || t[1] <= t[2] ? true : false
 
   # varStatSummary code:
   varSet = parseVarStr( varstr )
@@ -291,15 +291,38 @@ end
 #--> Dict{(String,String), Tuple}
 
 # final print function for stat array
-function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=nothing )
+function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict() )
   aHsh = statarr[1]
   @assert( isa(aHsh, Dict) )
+
+  # internal print function for variable keys
+  function printVardict( io, dict, refkey )
+    for col in keys(dict)
+      if haskey( dict[col], refkey )
+        val = dict[col][refkey]
+        if isa( val, Array )
+          med = median( val )
+          mad = mad( val )
+          @printf( io, "\t%d\t%.2f±%.2f", col, med, mad)
+        elseif isa( val, Tuple )
+          @printf( io, "\t%d\t%s", col, join( val, ',' ) )
+        else
+          @printf( io, "\t%d\t%s", col, val )
+        end
+      else
+        @printf( io, "\t%d\tNA", col )
+      end   
+    end
+    @printf( io, "\n" )
+  end #--> nothing
+
   if length(statarr) == 1
     # just a single set print output normally
     for (k1,k2) in keys( aHsh )
       k, _, pval, obsExp = aHsh[(k1,k2)]
       aPval <= alpha || continue  #filter p-val
-      @printf( io, "%s,%s\t%d\t%.2e\t%.2e\n", k1, k2, k, pval, obsExp )
+      @printf( io, "%s,%s\t%d\t%.2e\t%.2e", k1, k2, k, pval, obsExp )
+      printVardict( io, vardict, (k1,k2) )
     end
   elseif length(statarr) == 2
     bHsh = statarr[2]
@@ -315,7 +338,8 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=nothi
       exp_a_b = (aExp / normarr[1]) / (bExp / normarr[2])
       full_a_b = a_b / exp_a_b
       aPval <= alpha || continue # filter if p-value is above cutoff
-      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%d\t%.2e\t%.2e\n", k1, k2, full_a_b, a_b, exp_a_b, aK, bK, aPval, bPval )
+      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%d\t%.2e\t%.2e", k1, k2, full_a_b, a_b, exp_a_b, aK, bK, aPval, bPval )
+      printVardict( io, vardict, (k1,k2) )
     end #endfor
   end #endif
 end #--> nothing
