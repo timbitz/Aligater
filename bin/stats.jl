@@ -191,15 +191,15 @@ function loadBackgroundFile(io::IOStream, ind::Int; keyType=String, valType=Floa
     s = split(chomp(i), '\t')
     #=genes = replace(s[ind], ":*NA:*", "") |> x->split(x, ':')
     genes = split(s[ind], ':')
-    length(genes) > 0 && dinc!(cset, genes[1], one(valType)) =# # deprecate for performance
+    length(genes) > 0 && dinc!(cset, genes[1], one(valType)) =# # 04/15/15 deprecate for performance
     dinc!(cset, s[ind], one(valType))
   end
   cset
 end #--> Dict{keyType,valType}
 
 # This takes a cmd line string that contains pairs=> "column:type,column:type"
-# where column is an int and type is a Char of 
-function varStatSummary( io, refInd::Int, varstr::ASCIIString )
+# where column is an int and type is a Char of [sfdn] 
+function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
   # helper functions:
   function parseVarStr( str::ASCIIString )
     sets = split(str, ',')
@@ -213,31 +213,45 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString )
   end #--> Array{(Int,Char),1}
 
   function letterToType( letter::Char )
+    letter == 'p' && return (ASCIIString, ASCIIString)
     letter == 's' && return ASCIIString
     letter == 'f' && return Float64
     letter == 'd' && return Int64
     letter == 'n' && return Number
-    return Any
+    Any
   end #--> Type{T}
   
+  function isOrdered( t::Tuple )
+   length(t) <= 1 || t[1] <= t[2] ? true : false
+  end #-->Bool
+
   # varStatSummary code:
   varSet = parseVarStr( varstr )
   summary = Dict{Int,Dict}()
   for l::ASCIIString in eachline(io)
     s = split(chomp(l), '\t')
+    # follow the same filter rules as interactionFile:
+    if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
+      ismatch(reg, s[col]) || continue
+    end
+    # get reference key.
     refKey = sort( split(s[refInd], ':') )
     k = tuple(refKey...) # main refKey k
     # iterate through column & type pairs
     for (i,c) in varSet
       cType = letterToType( c ) # convert char to type
-      cVal  = parse(s[i])
+      parSi = parse(s[i])  # parse value initially
+      cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
+                                 (a,b) = split(parSi, ':')
+                                  isOrdered( k ) ? (a,b) : (b,a)
+                               end : parSi #otherwise initial parse was fine
       @assert( isa(cVal, cType) )
       if !haskey(summary, i) 
-        vType = cType <: ASCIIString ? ASCIIString : Array{cType,1}
+        vType = cType <: ASCIIString || cType <: Tuple ? cType : Array{cType,1}
         summary[i] = Dict{typeof(k), vType}()
       end
       if cType <: ASCIIString # set to single value unless already set
-        !haskey( summary[i], k ) && summary[i][k] = cVal
+        !haskey( summary[i], k ) && (summary[i][k] = cVal)
       else # numeric, so push the current element
         push!( summary[i][k], cVal )
       end
@@ -277,7 +291,7 @@ end
 #--> Dict{(String,String), Tuple}
 
 # final print function for stat array
-function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0 )
+function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=nothing )
   aHsh = statarr[1]
   @assert( isa(aHsh, Dict) )
   if length(statarr) == 1
@@ -317,13 +331,21 @@ function main()
   normArray = pargs["nc"] == nothing ? [1,1] : map(parse, split(pargs["nc"], ","))
 
   stats = Dict[]
+  
+  varstat = nothing  #scope
 
   # iterate through delimited names list
-  for nd in ndArray
+  for (ndIter,nd) in enumerate(ndArray)
 
     # if wilcard present, substitute with current pattern
     backfile = replace(pargs["back"], "%", nd)
     forefile = replace(pargs["fore"], "%", nd)
+
+    if ndIter == 1
+      fh = open(forefile, 'r')
+      varstat = varStatSummary( fh, pargs["gi"], parse_colfilt(pargs["filt"]) )
+      close( fh )
+    end
 
     # calculate p-values
     stathsh = loadFilesAndCalculate( forefile, backfile, pargs )
@@ -332,7 +354,7 @@ function main()
   end  
 
   @assert(0 < length(stats) <= 2, "--nd does not contain properly formatted arguments!")
-  printStats( STDOUT, stats, alpha=pargs["alpha"], normarr=normArray )
+  printStats( STDOUT, stats, alpha=pargs["alpha"], normarr=normArray, vardict=varstat )
 
 end
 #####################################################
