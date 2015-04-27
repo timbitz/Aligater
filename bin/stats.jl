@@ -48,6 +48,10 @@ function parse_cmd()
       help = "pattern filter [syntax= column:regex]"
       arg_type = ASCIIString
       default = "1:."
+    "--vs"
+      help = "extra variable string etc.., 'col:type,col:type', where type = [pcfdn]"
+      arg_type = ASCIIString
+      default = ""
     "--alpha"
       help = "maximum p-value for output, only applied to the numerator (first element) of --nd if supplied"
       arg_type = Float64
@@ -67,6 +71,7 @@ end
 # ### ### ### ### ###  FUNCTIONS ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 
+# this accepts a --filt string argument in the form 'column:regexstring'
 function parse_colfilt(toparse::ASCIIString)
   cap = match(r"(\d+)\:(.*)", toparse).captures
   @assert( length(cap) == 2 )
@@ -137,6 +142,10 @@ function jointInteracProb(pset::Dict, key1, key2, denom = 1.0, pseudo = 0.0)
   2(pset[key1] * pset[key2]) / denom
 end #--> Float
 
+#= This function takes a foreground count set for gene pairs
+   and a background probability set and derives a probability
+   set for those pairs and computes binomial p-values for the
+   foreground counts =#
 function calculateBinomialStats(forecnt::Dict, backprob::Dict)
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
@@ -167,10 +176,10 @@ function calculateBinomialStats(forecnt::Dict, backprob::Dict)
   retval
 end #--> Dict{(String,String), Tuple}
 
-# if the pairs 
+# if the pairs --TODODOC
 function loadInteractionFile(io::IOStream, gInd::Int, cntInd::Int, col, reg)
   cset = Dict{Tuple,Float64}()
-  sizehint!(cset, 100000) # allocate 100K pairs
+  #sizehint!(cset, 100000) # allocate 100K pairs
   for l::ASCIIString in eachline( io )
     s = split(chomp(l), '\t')
     if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
@@ -188,7 +197,7 @@ end #--> Dict{Tuple,Float64}
 # this does io and creates a cset structure of type Dict
 function loadBackgroundFile(io::IOStream, ind::Int; keyType=String, valType=Float64)
   cset = Dict{keyType,valType}()
-  sizehint!(cset, 20000) # approx number of genes
+  #sizehint!(cset, 20000) # approx number of genes
   for i::ASCIIString in eachline(io)
     s = split(chomp(i), '\t')
     #=genes = replace(s[ind], ":*NA:*", "") |> x->split(x, ':')
@@ -207,15 +216,16 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
     sets = split(str, ',')
     ret  = (Int,Char)[]
     for i in sets
-      col,typ = map(parse, split(i, ':'))
-      @assert( ismatch( r"[cf]", typ[1] ) )
-      push!(ret, (col, typ[1]) )
+      vcol,typ = map(parse, split(i, ':'))
+      tchar = string(typ)[1]
+      @assert( ismatch( r"[psfdn]", string(tchar) ) )
+      push!(ret, (vcol, tchar) )
     end
     ret
   end #--> Array{(Int,Char),1}
 
   function letterToType( letter::Char )
-    letter == 'p' && return (ASCIIString, ASCIIString)
+    letter == 'p' && return typeof(("",""))
     letter == 's' && return ASCIIString
     letter == 'f' && return Float64
     letter == 'd' && return Int64
@@ -224,12 +234,13 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
   end #--> Type{T}
   
   isOrdered( t::Tuple ) = length(t) <= 1 || t[1] <= t[2] ? true : false
+  toStrings( arr ) = map( x->convert(ASCIIString,x), arr )
 
   # varStatSummary code:
   varSet = parseVarStr( varstr )
   summary = Dict{Int,Dict}()
   for l::ASCIIString in eachline(io)
-    s = split(chomp(l), '\t')
+    s = split(chomp(l), "\t")
     # follow the same filter rules as interactionFile:
     if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
       ismatch(reg, s[col]) || continue
@@ -240,20 +251,21 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
     # iterate through column & type pairs
     for (i,c) in varSet
       cType = letterToType( c ) # convert char to type
-      parSi = parse(s[i])  # parse value initially
+      parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
       cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
-                                 (a,b) = split(parSi, ':')
+                                  a,b = split(parSi, ':') |> toStrings
                                   isOrdered( k ) ? (a,b) : (b,a)
-                               end : parSi #otherwise initial parse was fine
+                               end : convert(cType, parSi)
+                                #otherwise initial parse was fine
       @assert( isa(cVal, cType) )
       if !haskey(summary, i) 
         vType = cType <: ASCIIString || cType <: Tuple ? cType : Array{cType,1}
         summary[i] = Dict{typeof(k), vType}()
       end
-      if cType <: ASCIIString # set to single value unless already set
-        !haskey( summary[i], k ) && (summary[i][k] = cVal)
+      if cType <: ASCIIString || cType <: Tuple # set to single value unless already set
+        !haskey( summary[i], k ) && ( summary[i][k] = cVal )
       else # numeric, so push the current element
-        push!( summary[i][k], cVal )
+        dush!( summary[i], k, cVal, arrType=cType )
       end
     end 
   end
@@ -301,9 +313,10 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
       if haskey( dict[col], refkey )
         val = dict[col][refkey]
         if isa( val, Array )
-          med = median( val )
-          mad = mad( val )
-          @printf( io, "\t%d\t%.2f±%.2f", col, med, mad)
+          asfloat = typeof(val) <: Array{Int64,1} ? convert(Array{Float64,1}, val) : val
+          aMed = median( asfloat )
+          aMad = mad( asfloat )
+          @printf( io, "\t%d\t%.2f±%.2f", col, aMed, aMad)
         elseif isa( val, Tuple )
           @printf( io, "\t%d\t%s", col, join( val, ',' ) )
         else
@@ -365,9 +378,11 @@ function main()
     backfile = replace(pargs["back"], "%", nd)
     forefile = replace(pargs["fore"], "%", nd)
 
-    if ndIter == 1
-      fh = open(forefile, 'r')
-      varstat = varStatSummary( fh, pargs["gi"], parse_colfilt(pargs["filt"]) )
+    if ndIter == 1 && length(pargs["vs"]) > 0
+      println(STDERR, "Loading --vs variables")
+      c,r = parse_colfilt(pargs["filt"])
+      fh = open(forefile, "r")
+      varstat = varStatSummary( fh, pargs["gi"], pargs["vs"], c, r )
       close( fh )
     end
 
