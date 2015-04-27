@@ -253,7 +253,8 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
       cType = letterToType( c ) # convert char to type
       parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
       cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
-                                  split(parSi, ':') |> toStrings |> reOrder
+                                  a,b = split(parSi, ':') |> toStrings
+                                  reOrder( (a,b) )
                                end : convert(cType, parSi)
                                 #otherwise initial parse was fine
       @assert( isa(cVal, cType) )
