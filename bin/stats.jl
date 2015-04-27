@@ -14,7 +14,7 @@
 # ### ### ### ## INITIALIZATION  ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 
-println(STDERR, "[aligater enrich] Loading Packages..")
+println(STDERR, "[aligater stats]: Loading Packages..")
 
 using ArgParse
 using StatsBase
@@ -63,8 +63,8 @@ function parse_cmd()
   return parse_args(s)
 end
 
-macro vprint(msg)
-# todo
+macro vprint( msg, verb )
+  :( $verb ? println( STDERR, "[aligater stats]: " * $msg ) : nothing )
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -233,7 +233,7 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
     Any
   end #--> Type{T}
   
-  isOrdered( t::Tuple ) = length(t) <= 1 || t[1] <= t[2] ? true : false
+  reOrder( t::Tuple ) = (length(t) <= 1 || t[1] <= t[2]) ? t : (t[2],t[1])
   toStrings( arr ) = map( x->convert(ASCIIString,x), arr )
 
   # varStatSummary code:
@@ -253,8 +253,7 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
       cType = letterToType( c ) # convert char to type
       parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
       cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
-                                  a,b = split(parSi, ':') |> toStrings
-                                  isOrdered( k ) ? (a,b) : (b,a)
+                                  split(parSi, ':') |> toStrings |> reOrder
                                end : convert(cType, parSi)
                                 #otherwise initial parse was fine
       @assert( isa(cVal, cType) )
