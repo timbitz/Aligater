@@ -332,9 +332,9 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
   if length(statarr) == 1
     # just a single set print output normally
     for (k1,k2) in keys( aHsh )
-      k, _, pval, obsExp = aHsh[(k1,k2)]
+      k, kExp, pval, obsExp = aHsh[(k1,k2)]
       aPval <= alpha || continue  #filter p-val
-      @printf( io, "%s,%s\t%d\t%.2e\t%.2e", k1, k2, k, pval, obsExp )
+      @printf( io, "%s,%s\t%d\t%.1f\t%.2e\t%.2e", k1, k2, k, k/kExp, pval, obsExp )
       printVardict( io, vardict, (k1,k2) )
     end
   elseif length(statarr) == 2
@@ -351,7 +351,7 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
       exp_a_b = (aExp / normarr[1]) / (bExp / normarr[2])
       full_a_b = a_b / exp_a_b
       aPval <= alpha || continue # filter if p-value is above cutoff
-      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%d\t%.2e\t%.2e", k1, k2, full_a_b, a_b, exp_a_b, aK, bK, aPval, bPval )
+      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%.1f\t%d\t%.1f\t%.2e\t%.2e", k1, k2, full_a_b, a_b, exp_a_b, aK, aK/aExp, bK, bK/bExp, aPval, bPval )
       printVardict( io, vardict, (k1,k2) )
     end #endfor
   end #endif
