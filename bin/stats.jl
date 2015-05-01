@@ -342,10 +342,10 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
     @assert( isa(bHsh, Dict) )
     ksone  = collect( keys( aHsh ) )
     kstwo  = collect( keys( bHsh ) )
-    intset = intersect( ksone, kstwo )
+    both = union( ksone, kstwo )
     # iterat ehrough shared set.
-    for (k1,k2) in ksone
-      aK, aExp, aPval, aObsExp = aHsh[(k1,k2)]
+    for (k1,k2) in both
+      aK, aExp, aPval, aObsExp = haskey(aHsh,(k1,k2)) ? aHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
       bK, bExp, bPval, bObsExp = haskey(bHsh,(k1,k2)) ? bHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
       a_b = (aK / normarr[1]) / (bK / normarr[2])
       exp_a_b = (aExp / normarr[1]) / (bExp / normarr[2])
