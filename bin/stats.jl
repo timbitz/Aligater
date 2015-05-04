@@ -368,7 +368,8 @@ function main()
   # check options.
   ndArray = pargs["nd"] == nothing ? [""] : split(pargs["nd"], ",")
   normArray = pargs["nc"] == nothing ? [1,1] : map(parse, split(pargs["nc"], ","))
-
+  
+  ndParsed = ASCIIString[]
   stats = Dict[]
   
   varstat = nothing  #scope
@@ -380,6 +381,8 @@ function main()
     backfile = replace(pargs["back"], "%", nd)
     forefile = replace(pargs["fore"], "%", nd)
 
+    push!(ndParsed, forefile)
+
     # calculate p-values
     stathsh = loadFilesAndCalculate( forefile, backfile, pargs )
     
@@ -389,7 +392,7 @@ function main()
   if length(pargs["vs"]) > 0
     println(STDERR, "Loading --vs variables")
     c,r = parse_colfilt(pargs["filt"])
-    varstat = varStatSummary( `cat $ndArray` , pargs["gi"], pargs["vs"], c, r )
+    varstat = varStatSummary( `cat $ndParsed` , pargs["gi"], pargs["vs"], c, r )
   end
 
   @assert(0 < length(stats) <= 2, "--nd does not contain properly formatted arguments!")
