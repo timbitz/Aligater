@@ -210,7 +210,7 @@ end #--> Dict{keyType,valType}
 
 # This takes a cmd line string that contains pairs=> "column:type,column:type"
 # where column is an int and type is a Char of [sfdn] 
-function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
+function varStatSummary( openwhat, refInd::Int, varstr::ASCIIString, col, reg )
   # helper functions:
   function parseVarStr( str::ASCIIString )
     sets = split(str, ',')
@@ -239,35 +239,37 @@ function varStatSummary( io, refInd::Int, varstr::ASCIIString, col, reg )
   # varStatSummary code:
   varSet = parseVarStr( varstr )
   summary = Dict{Int,Dict}()
-  for l::ASCIIString in eachline(io)
-    s = split(chomp(l), "\t")
-    # follow the same filter rules as interactionFile:
-    if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
-      ismatch(reg, s[col]) || continue
+  open( openwhat , "r" ) do fh
+    for l::ASCIIString in eachline(fh)
+      s = split(chomp(l), "\t")
+      # follow the same filter rules as interactionFile:
+      if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
+        ismatch(reg, s[col]) || continue
+      end
+      # get reference key.
+      refKey = sort( split(s[refInd], ':') )
+      k = tuple(refKey...) # main refKey k
+      # iterate through column & type pairs
+      for (i,c) in varSet
+        cType = letterToType( c ) # convert char to type
+        parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
+        cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
+                                    a,b = split(parSi, ':') |> toStrings
+                                    reOrder( (a,b) )
+                                 end : convert(cType, parSi)
+                                  #otherwise initial parse was fine
+        @assert( isa(cVal, cType) )
+        if !haskey(summary, i) 
+          vType = cType <: ASCIIString || cType <: Tuple ? cType : Array{cType,1}
+          summary[i] = Dict{typeof(k), vType}()
+        end
+        if cType <: ASCIIString || cType <: Tuple # set to single value unless already set
+          !haskey( summary[i], k ) && ( summary[i][k] = cVal )
+        else # numeric, so push the current element
+          dush!( summary[i], k, cVal, arrType=cType )
+        end
+      end 
     end
-    # get reference key.
-    refKey = sort( split(s[refInd], ':') )
-    k = tuple(refKey...) # main refKey k
-    # iterate through column & type pairs
-    for (i,c) in varSet
-      cType = letterToType( c ) # convert char to type
-      parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
-      cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
-                                  a,b = split(parSi, ':') |> toStrings
-                                  reOrder( (a,b) )
-                               end : convert(cType, parSi)
-                                #otherwise initial parse was fine
-      @assert( isa(cVal, cType) )
-      if !haskey(summary, i) 
-        vType = cType <: ASCIIString || cType <: Tuple ? cType : Array{cType,1}
-        summary[i] = Dict{typeof(k), vType}()
-      end
-      if cType <: ASCIIString || cType <: Tuple # set to single value unless already set
-        !haskey( summary[i], k ) && ( summary[i][k] = cVal )
-      else # numeric, so push the current element
-        dush!( summary[i], k, cVal, arrType=cType )
-      end
-    end 
   end
   summary
 end #--> Dict{Int,Dict{Tuple, ? }}
@@ -378,19 +380,17 @@ function main()
     backfile = replace(pargs["back"], "%", nd)
     forefile = replace(pargs["fore"], "%", nd)
 
-    if ndIter == 1 && length(pargs["vs"]) > 0
-      println(STDERR, "Loading --vs variables")
-      c,r = parse_colfilt(pargs["filt"])
-      fh = open(forefile, "r")
-      varstat = varStatSummary( fh, pargs["gi"], pargs["vs"], c, r )
-      close( fh )
-    end
-
     # calculate p-values
     stathsh = loadFilesAndCalculate( forefile, backfile, pargs )
     
     push!(stats, stathsh) 
   end  
+
+  if length(pargs["vs"]) > 0
+    println(STDERR, "Loading --vs variables")
+    c,r = parse_colfilt(pargs["filt"])
+    varstat = varStatSummary( `cat $ndArray` , pargs["gi"], pargs["vs"], c, r )
+  end
 
   @assert(0 < length(stats) <= 2, "--nd does not contain properly formatted arguments!")
   printStats( STDOUT, stats, alpha=pargs["alpha"], normarr=normArray, vardict=varstat )
