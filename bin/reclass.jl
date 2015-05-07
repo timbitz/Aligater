@@ -51,8 +51,12 @@ function isUniqueJunc!( used::Dict{ASCIIString,Bool}, seq::ASCIIString, genes )
   retbool
 end #--> Bool
 
-function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class::Char, seqs, genes; size=32 )
-  @assert( length(seqs) == 2 && length(genes) == 2 )
+
+# This function can both be used to set, and also get the class associated with two chimeric
+# sequences based on window size homology.  First pass should set the database then run a
+# second pass to retrieve the final results
+function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class::Char, seqs; size=32 )
+  @assert( length(seqs) == 2 )
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
   classHeirArray( arr::Array{Char,1} ) = shift!( reverse( sort( arr ) ) ) #--> Char
   retarray = Char[]
@@ -67,7 +71,7 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
   for i = 1:it:(lenA-size)+1, j = 1:it:(lenB-size)+1
     winA = seqA[i:i+size-1] # access substrings 
     winB = seqB[j:j+size-1]
-    keyA,keyB = sort( [winA,winB] )
+    keyA,keyB = winA < winB ? (winA,winB) : (winB,winA)
     # use non-exported ht_keyindex function to avoid over indexing hash
     indxA = Base.ht_keyindex( doubleDict, keyA )
     if indxA <= 0 #initialize hash if necessary
@@ -87,6 +91,14 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
   classHeirArray( retarray )
 end #--> Char
 
+function reducegeneid( geneid, biotype, repeatname, repeatclass )
+   
+end
+
+function reducebiotype( geneid, biotype, repeatname, repeatclass )
+
+end
+
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 # ### ### ### ### ### MAIN  ### ### ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -99,25 +111,49 @@ function main()
 
   djunc = Dict{ASCIIString,Bool}()
   dstore = Dict{Char,Array{stype,1}}()
+  dclass = Dict{ASCIIString,Dict{ASCIIString,Char}}()
 
-  seqInd = 11
-  geneInd = 25
+  const seqInd = 11 # sequence index of .lig
+  const geneInd = 3 # gene-id index
+  const biotInd = 6 # biotype index
+  const repnInd = 7 # repeat name index
+  const repcInd = 8 # repeat class index
 
+  # first iteration through file, store data, set structures
   for i in eachline( STDIN )
-
     s = split(chomp(i), '\t')
     genes = split(s[geneInd], ':')
 
     # test if this is a unique junction/readset
     if isUniqueJunc!( djunc, s[seqInd], genes )
 
+      if pargs["geneid"]
+
+      end
+      if pargs["biotype"]
+
+      end
+
       #set data
       @assert( length(s[1]) == 1 )
       curclass = Char( s[1] )
       dush!( dstore, curclass, s, arrType=typeof(s) )
-      
+    
+      seqs = split(s[seqInd], '_')
+      if length(seqs) > 1 
+        setClass!( dclass, curClass, seqs )
+      end
+    end
+  end
+
+  # second iteration through remaining stored file
+  for class in classSet, s in dstore[class]
+    seqs = split(s[seqInd], '_')
+    if length(seqs) > 1 # try to reclassify
+      s[1] = setClass!( dclass, 'A', seqs )
     end
   end
 end
-
+#########
 main()
+#########
