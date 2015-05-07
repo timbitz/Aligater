@@ -12,7 +12,7 @@
 
 using ArgParse
 using StatsBase
-using Distributions
+using Match
 
 function parse_cmd()
   s = ArgParseSettings()
@@ -92,7 +92,38 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
 end #--> Char
 
 function reducegeneid( geneid, biotype, repeatname, repeatclass )
-   
+  retval = @match repeatname begin
+             r"SSU-rRNA" => "18S_rRNA"
+             r"LSU-rRNA" => "28S_rRNA"
+             _, if ismatch(r"RNA", repeatclass) end => repeatname
+             _ => geneid
+           end
+   (retval != geneid) && return retval
+
+  retval = @match geneid begin
+             r"RNA{0,1}5S|C15orf52" => "5S_rRNA"
+             r"RNA{0,1}5-8" => "5.8S_rRNA"
+             r"7SL" => "7SLRNA_srpRNA"
+             r"7SK" => "7SK_RNA"
+             _ => geneid
+          end
+  (retval != geneid) && return retval
+
+  m = match(r"RNU(\d+)(?=(ATAC|-))", geneid)
+  if m != nothing
+    retval = @match m.captures[2] begin
+               "ATAC" => "RNU"*m.captures[1]*m.captures[2]
+               "-" => "U"*m.captures[1]*"_snRNA"
+               _ => geneid
+             end
+  end
+  (retval != geneid) && return retval
+
+  m = match(r"RNA{0,1}(\d+)S)", geneid)
+  if m != nothing
+    retval = m.captures[1] * "S_rRNA"
+  end
+  retval
 end
 
 function reducebiotype( geneid, biotype, repeatname, repeatclass )
