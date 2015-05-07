@@ -63,13 +63,15 @@ function parse_cmd()
   return parse_args(s)
 end
 
-macro vprint( msg, verb )
-  :( $verb ? println( STDERR, "[aligater stats]: " * $msg ) : nothing )
+macro locassert( logic, msg )
+  :( $logic ? println( STDERR, "[aligater stats]: " * $msg ) && quit() : nothing )
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 # ### ### ### ### ###  FUNCTIONS ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
+
+include("dictext.jl")
 
 # this accepts a --filt string argument in the form 'column:regexstring'
 function parse_colfilt(toparse::ASCIIString)
@@ -79,39 +81,6 @@ function parse_colfilt(toparse::ASCIIString)
   reg = Regex(cap[2])
   col, reg
 end #--> (Integer, Regex)
-
-# dictionary value increment
-# this should be standard imo.
-function dinc!(dict::Dict, key, val=1) 
-  if !haskey(dict, key)
-    dict[key] = val
-  else
-    @assert( isa(dict[key], Number) )
-    dict[key] += val
-  end
-end #--> nothing
-
-# dictionary [] create or push if exists
-# this also should be standard imo
-function dush!(dict::Dict, key, val; arrType = Any)
-  @assert( isa(val, arrType) )
-  if !haskey(dict, key)
-    dict[key] = arrType[ val ]
-  else
-    push!(dict[key], val)
-  end
-end #--> nothing
-
-
-# normalize numeric dictionary values
-function dnorm!(dict::Dict)
-  const n = sum( collect( values(dict) ) )
-  @assert( n > 0 )
-  for i in keys(dict)
-    @assert( isa(dict[i], Number) )
-    dict[i] /= n 
-  end #normalize
-end #--> nothing
 
 #= make joint interaction distribution 
      P(x,y) = [ x * y  when x != y
@@ -368,6 +337,8 @@ function main()
   # check options.
   ndArray = pargs["nd"] == nothing ? [""] : split(pargs["nd"], ",")
   normArray = pargs["nc"] == nothing ? [1,1] : map(parse, split(pargs["nc"], ","))
+
+  @locassert(pargs["back"] == nothing || pargs["fore"] == nothing, "--fore and --back must be given!")
   
   ndParsed = ASCIIString[]
   stats = Dict[]
