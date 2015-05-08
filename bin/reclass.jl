@@ -144,6 +144,30 @@ function reducebiotype( geneid, biotype, repeatname, repeatclass )
   end
 end
 
+function reducef( func, str )
+  const geneInd = 3 # gene-id index
+  const biotInd = 6 # biotype index
+  const repnInd = 7 # repeat name index
+  const repcInd = 8 # repeat class index
+  
+  function safesplit( arr, ind; char=':' )
+    @assert( length(arr) >= ind )
+    split( arr[ind], char )
+  end
+
+  gspl = safesplit( s, geneInd )
+  bspl = safesplit( s, biotInd )
+  nspl = safesplit( s, repnInd )
+  cspl = safesplit( s, repcInd )
+
+  lenLim = min( map(length, (gspl, bspl, nspl, cspl)) )
+  res = ASCIIString[]
+  for i in 1:lenLim
+    push!(res, func(gspl[i], bspl[i], nspl[i], cspl[i]))
+  end
+  res
+end
+
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 # ### ### ### ### ### MAIN  ### ### ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -160,9 +184,6 @@ function main()
 
   const seqInd = 11 # sequence index of .lig
   const geneInd = 3 # gene-id index
-  const biotInd = 6 # biotype index
-  const repnInd = 7 # repeat name index
-  const repcInd = 8 # repeat class index
 
   # first iteration through file, store data, set structures
   for i in eachline( STDIN )
@@ -171,14 +192,6 @@ function main()
 
     # test if this is a unique junction/readset
     if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
-
-      if pargs["geneid"]
-        redgene = 
-      end
-      if pargs["biotype"]
-
-      end
-
       #set data
       @assert( length(s[1]) == 1 )
       curclass = Char( s[1] )
@@ -197,6 +210,16 @@ function main()
     if length(seqs) > 1 # try to reclassify
       s[1] = setClass!( dclass, 'A', seqs )
     end
+    
+    # now if collapse flags are true then try to reclassify
+    if pargs["geneid"]
+      redgenes = reducef( reducegene, s )
+      
+    end
+    if pargs["biotype"]
+      redbiotypes = reducef( reducebiotype, s )
+    end
+
   end
 end
 #########
