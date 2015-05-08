@@ -14,7 +14,8 @@
 # ### ### ### ## INITIALIZATION  ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 
-println(STDERR, "[aligater stats]: Loading Packages..")
+global head = "[aligater stats]:"
+println(STDERR, "$head Loading Packages..")
 
 using ArgParse
 using StatsBase
@@ -63,9 +64,6 @@ function parse_cmd()
   return parse_args(s)
 end
 
-macro locassert( logic, msg )
-  :( $logic ? println( STDERR, "[aligater stats]: " * $msg ) && quit() : nothing )
-end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 # ### ### ### ### ###  FUNCTIONS ## ### ### ### ### ##
@@ -338,8 +336,9 @@ function main()
   ndArray = pargs["nd"] == nothing ? [""] : split(pargs["nd"], ",")
   normArray = pargs["nc"] == nothing ? [1,1] : map(parse, split(pargs["nc"], ","))
 
-  @locassert(pargs["back"] == nothing || pargs["fore"] == nothing, "--fore and --back must be given!")
-  
+  @assert( pargs["fore"] != nothing, "$head --fore and --back must be given!")
+  @assert( pargs["back"] != nothing, "$head --fore and --back must be given!")
+
   ndParsed = ASCIIString[]
   stats = Dict[]
   

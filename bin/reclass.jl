@@ -10,6 +10,9 @@
 # ### ### ### ## INITIALIZATION  ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 
+global head = "[aligater reclass]:"
+println(STDERR, "$head Loading Packages..")
+
 using ArgParse
 using StatsBase
 using Match
@@ -169,7 +172,7 @@ end #--> ASCIIString[]
 
 function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   for class in keys(dstore), s in dstore[class]
-    seqs = split(s[seqInd], '_')
+    seqs = masksplit(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
       s[1] = string( setClass!( dclass, 'A', seqs ) )
     end
@@ -194,6 +197,11 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   end
 end
 
+function masksplit( str, char )
+  replace( str, r"[a-z]", "" )
+  split( str, char )
+end
+
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 # ### ### ### ### ### MAIN  ### ### ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -204,7 +212,7 @@ function main()
   # in case julia changes by version
   const stype = typeof( split("a:b", ':') )
 
-  djunc = Dict{ASCIIString,Bool}()
+  djunc  = Dict{ASCIIString,Bool}()
   dstore = Dict{Char,Array{stype,1}}()
   dclass = Dict{ASCIIString,Dict{ASCIIString,Char}}()
 
@@ -223,7 +231,7 @@ function main()
       curclass = s[1][1]
       dush!( dstore, curclass, s, arrType=typeof(s) )
     
-      seqs = split(s[seqInd], '_')
+      seqs = masksplit(s[seqInd], '_')
       if length(seqs) > 1 
         setClass!( dclass, curclass, seqs )
       end
