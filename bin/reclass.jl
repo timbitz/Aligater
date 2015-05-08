@@ -20,16 +20,13 @@ function parse_cmd()
   @add_arg_table s begin
     "--geneid", "-g"
       help = "flag to collapse geneids"
-      arg_type = Bool
-      default = false
+      action = :store_true
     "--biotype", "-b"
       help = "flag to collapse biotypes"
-      arg_type = Bool
-      default = false
+      action = :store_true
     "--uniq", "-u"
       help = "filter for unique chimeras by left/right lengths and 10bp unique match of lig site"
-      arg_type = Bool
-      default = false
+      action = :store_true
   end
   return parse_args(s)
 end
@@ -40,7 +37,7 @@ end
 
 include("dictext.jl") #--> dush!, dinc!, dnorm!
 
-function isUniqueJunc!( used::Dict{ASCIIString,Bool}, seq::ASCIIString, genes )
+function isUniqueJunc!( used::Dict{ASCIIString,Bool}, seq, genes )
   m = match(r"([AGCTUN]{5}_[AGCTUN]{5})", seq)
   cap = m.captures[1]
   m = match(r"([AGCTUN]+)_([AGCTUN]+)", seq)
@@ -60,7 +57,7 @@ end #--> Bool
 # sequences based on window size homology.  First pass should set the database then run a
 # second pass to retrieve the final results
 function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class::Char, seqs; size=32 )
-  @assert( length(seqs) == 2 )
+  @assert( length(seqs) >= 2 )
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
   classHeirArray( arr::Array{Char,1} ) = shift!( reverse( sort( arr ) ) ) #--> Char
   retarray = Char[]
@@ -86,13 +83,15 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
     indxB = Base.ht_keyindex( dictA, keyB )
     if indxB <= 0
       dictA[keyB] = class #set val if none exists
+      length(retarray) <= 0 && push!(retarray, class)
     else
-      curVal = classHeirarchy( dictA.vals[indxB], class )
+      curVal = classHeirPair( dictA.vals[indxB], class )
       dictA.vals[indxB] = curVal
       push!(retarray, curVal)
     end
   end
-  classHeirArray( retarray )
+  @assert( length(retarray) > 0 )
+  length(retarray) > 1 ? classHeirArray( retarray ) : retarray[1]
 end #--> Char
 
 function reducegeneid( geneid, biotype, repeatname, repeatclass )
@@ -123,12 +122,12 @@ function reducegeneid( geneid, biotype, repeatname, repeatclass )
   end
   (retval != geneid) && return retval
 
-  m = match(r"RNA{0,1}(\d+)S)", geneid)
+  m = match(r"RNA{0,1}(\d+)S", geneid)
   if m != nothing
     retval = m.captures[1] * "S_rRNA"
   end
   retval
-end
+end #--> ASCIIString
 
 function reducebiotype( geneid, biotype, repeatname, repeatclass )
   biotype = replace(biotype, r"Mt-", "")
@@ -142,7 +141,7 @@ function reducebiotype( geneid, biotype, repeatname, repeatclass )
   else
     return(biotype == "NA" ? geneid : biotype)
   end
-end
+end #--> ASCIIString
 
 function reducef( func, str )
   const geneInd = 3 # gene-id index
@@ -166,6 +165,28 @@ function reducef( func, str )
     push!(res, func(gspl[i], bspl[i], nspl[i], cspl[i]))
   end
   res
+end #--> ASCIIString[]
+
+function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
+  for class in ['S','P','A','I'], s in dstore[class]
+    seqs = split(s[seqInd], '_')
+    if length(seqs) > 1 # try to reclassify
+      s[1] = setClass!( dclass, 'A', seqs )
+    end
+    
+    # now if collapse flags are true then try to reclassify
+    if pargs["biotype"]
+      redbiotypes = join(reducef( reducebiotype, s ), ':')
+      s = [s, redbiotypes]
+    end
+    if pargs["geneid"]
+      redgenes = join(reducef( reducegene, s ), ':')
+      s = [s, redgenes]
+    end
+    # # # print to STDOUT # # # 
+    println( join( s, '\t' ) )
+    # # # # # # # # # # # # # # 
+  end
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -194,33 +215,18 @@ function main()
     if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
       #set data
       @assert( length(s[1]) == 1 )
-      curclass = Char( s[1] )
+      curclass = s[1][1]
       dush!( dstore, curclass, s, arrType=typeof(s) )
     
       seqs = split(s[seqInd], '_')
       if length(seqs) > 1 
-        setClass!( dclass, curClass, seqs )
+        setClass!( dclass, curclass, seqs )
       end
     end
   end
 
-  # second iteration through remaining stored file
-  for class in classSet, s in dstore[class]
-    seqs = split(s[seqInd], '_')
-    if length(seqs) > 1 # try to reclassify
-      s[1] = setClass!( dclass, 'A', seqs )
-    end
-    
-    # now if collapse flags are true then try to reclassify
-    if pargs["geneid"]
-      redgenes = reducef( reducegene, s )
-      
-    end
-    if pargs["biotype"]
-      redbiotypes = reducef( reducebiotype, s )
-    end
-
-  end
+  # finish and print.
+  reclassReduceAndPrint( dclass, dstore, pargs, seqInd )
 end
 #########
 main()
