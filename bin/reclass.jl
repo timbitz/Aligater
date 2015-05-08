@@ -127,7 +127,11 @@ function reducegeneid( geneid, biotype, repeatname, repeatclass )
 end
 
 function reducebiotype( geneid, biotype, repeatname, repeatclass )
-
+  biotype = replace(biotype, r"Mt-", "")
+  ismatch(r"(srp|sn|t|r)RNA", biotype) && return(biotype)
+  ismatch(r"SNOR|SCAR", geneid) && return("snoRNA")
+  ismatch(r"7SK_RNA", repeatname) && return(repeatname)
+     
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
