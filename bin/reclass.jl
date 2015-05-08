@@ -131,7 +131,13 @@ function reducebiotype( geneid, biotype, repeatname, repeatclass )
   ismatch(r"(srp|sn|t|r)RNA", biotype) && return(biotype)
   ismatch(r"SNOR|SCAR", geneid) && return("snoRNA")
   ismatch(r"7SK_RNA", repeatname) && return(repeatname)
-     
+  ismatch(r"U(3|8|9|\d{2,+})|snoRNA", repeatname) && return("snoRNA")   
+  ismatch(r"snRNA", repeatname) && return("snRNA")
+  if repeatclass != "NA"
+    return("$biotype\_$repeatclass")
+  else
+    return(biotype == "NA" ? geneid : biotype)
+  end
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
