@@ -186,7 +186,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
       redgenes = join(reducef( reducegeneid, s ), ':')
       if length(redgenes) >= 2
         if length(unique(redgenes)) == 1
-          replace(s[1], r"[SPI]", "S") #re-classify
+          s[1] = replace(s[1], r"[PI]", "S") #re-classify
         end
       end
       s = [s, redgenes]
