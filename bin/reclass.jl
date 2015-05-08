@@ -26,6 +26,10 @@ function parse_cmd()
       help = "flag to collapse biotypes"
       arg_type = Bool
       default = false
+    "--uniq", "-u"
+      help = "filter for unique chimeras by left/right lengths and 10bp unique match of lig site"
+      arg_type = Bool
+      default = false
   end
   return parse_args(s)
 end
@@ -166,10 +170,10 @@ function main()
     genes = split(s[geneInd], ':')
 
     # test if this is a unique junction/readset
-    if isUniqueJunc!( djunc, s[seqInd], genes )
+    if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
 
       if pargs["geneid"]
-
+        redgene = 
       end
       if pargs["biotype"]
 
