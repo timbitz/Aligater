@@ -144,22 +144,22 @@ function reducebiotype( geneid, biotype, repeatname, repeatclass )
 end #--> ASCIIString
 
 function reducef( func, str )
-  const geneInd = 3 # gene-id index
-  const biotInd = 6 # biotype index
-  const repnInd = 7 # repeat name index
-  const repcInd = 8 # repeat class index
+  const geneInd = 4 # gene-id index
+  const biotInd = 7 # biotype index
+  const repnInd = 8 # repeat name index
+  const repcInd = 9 # repeat class index
   
   function safesplit( arr, ind; char=':' )
     @assert( length(arr) >= ind )
     split( arr[ind], char )
   end
 
-  gspl = safesplit( s, geneInd )
-  bspl = safesplit( s, biotInd )
-  nspl = safesplit( s, repnInd )
-  cspl = safesplit( s, repcInd )
+  gspl = safesplit( str, geneInd )
+  bspl = safesplit( str, biotInd )
+  nspl = safesplit( str, repnInd )
+  cspl = safesplit( str, repcInd )
 
-  lenLim = min( map(length, (gspl, bspl, nspl, cspl)) )
+  lenLim = min( map(length, (gspl, bspl, nspl, cspl))... )
   res = ASCIIString[]
   for i in 1:lenLim
     push!(res, func(gspl[i], bspl[i], nspl[i], cspl[i]))
@@ -168,19 +168,24 @@ function reducef( func, str )
 end #--> ASCIIString[]
 
 function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
-  for class in ['S','P','A','I'], s in dstore[class]
+  for class in keys(dstore), s in dstore[class]
     seqs = split(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
-      s[1] = setClass!( dclass, 'A', seqs )
+      s[1] = string( setClass!( dclass, 'A', seqs ) )
     end
     
     # now if collapse flags are true then try to reclassify
     if pargs["biotype"]
-      redbiotypes = join(reducef( reducebiotype, s ), ':')
+      redbiotypes = join(reducef( reducebiotype, s ), ':')           
       s = [s, redbiotypes]
     end
     if pargs["geneid"]
-      redgenes = join(reducef( reducegene, s ), ':')
+      redgenes = join(reducef( reducegeneid, s ), ':')
+      if length(redgenes) >= 2
+        if length(unique(redgenes)) == 1
+          replace(s[1], r"[SPI]", "S") #re-classify
+        end
+      end
       s = [s, redgenes]
     end
     # # # print to STDOUT # # # 
