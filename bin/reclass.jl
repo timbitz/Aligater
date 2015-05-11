@@ -71,7 +71,8 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
   @assert( length(seqs) >= 2 )
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
   classHeirArray( arr::Array{Char,1} ) = max( arr... ) #--> Char
-  retarray = Char[]
+#  retarray = Char[]
+  retval = 'Z'
   lenA,lenB = map(length, seqs)
   # pad a sequence if it is shorter than our target window size
   seqA = seqs[1] * repeat(".", max( size - lenA, 0 ))
@@ -94,15 +95,18 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
     indxB = Base.ht_keyindex( dictA, keyB )
     if indxB <= 0
       dictA[keyB] = class #set val if none exists
-      length(retarray) <= 0 && push!(retarray, class)
+      #length(retarray) <= 0 && push!(retarray, class)
+      retval == 'Z' && (retval = class)
     else
       curVal = classHeirPair( dictA.vals[indxB], class )
       dictA.vals[indxB] = curVal
-      push!(retarray, curVal)
+      #push!(retarray, curVal)
+      retval = classHeirPair( retval, curVal )
     end
   end
-  @assert( length(retarray) > 0 )
-  length(retarray) > 1 ? classHeirArray( retarray ) : retarray[1]
+#  @assert( length(retarray) > 0 )
+#  length(retarray) > 1 ? classHeirArray( retarray ) : retarray[1]
+  retval
 end #--> Char
 
 function reducegeneid( geneid, biotype, repeatname, repeatclass )
