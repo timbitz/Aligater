@@ -16,6 +16,8 @@ println(STDERR, "$head Loading Packages..")
 using ArgParse
 using StatsBase
 using Match
+using HDF5
+using JLD
 
 function parse_cmd()
   s = ArgParseSettings()
@@ -30,6 +32,12 @@ function parse_cmd()
     "--uniq", "-u"
       help = "filter for unique chimeras by left/right lengths and 10bp unique match of lig site"
       action = :store_true
+    "--load"
+      help = "previously stored background file for 'dclass' in HDF5 format"
+      arg_type = ASCIIString
+    "--save"
+      help = "store to file the resulting 'dclass' in HDF5 as calculated on the input data"
+      arg_type = ASCIIString 
   end
   return parse_args(s)
 end
@@ -62,7 +70,7 @@ end #--> Bool
 function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class::Char, seqs; size=32 )
   @assert( length(seqs) >= 2 )
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
-  classHeirArray( arr::Array{Char,1} ) = shift!( reverse( sort( arr ) ) ) #--> Char
+  classHeirArray( arr::Array{Char,1} ) = max( arr... ) #--> Char
   retarray = Char[]
   lenA,lenB = map(length, seqs)
   # pad a sequence if it is shorter than our target window size
@@ -72,7 +80,7 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
   lenA,lenB = length(seqA),length(seqB)
   it=max(1, floor(size/2)) # calculate the step size, as half the window size
   # iterate through the cartesian product of windows in seqA and seqB by it step size
-  for i = 1:it:(lenA-size)+1, j = 1:it:(lenB-size)+1
+  for i in 1:it:(lenA-size)+1, j in 1:it:(lenB-size)+1
     winA = seqA[i:i+size-1] # access substrings 
     winB = seqB[j:j+size-1]
     keyA,keyB = winA < winB ? (winA,winB) : (winB,winA)
@@ -213,8 +221,8 @@ function main()
   const stype = typeof( split("a:b", ':') )
 
   djunc  = Dict{ASCIIString,Bool}()
-  dstore = Dict{Char,Array{stype,1}}()
-  dclass = Dict{ASCIIString,Dict{ASCIIString,Char}}()
+  dstore = Dict{Char,Array{stype,1}}() 
+  dclass = pargs["load"] == nothing ? Dict{ASCIIString,Dict{ASCIIString,Char}}() : load(pargs["load"], "dclass")
 
   const seqInd = 11 # sequence index of .lig
   const geneInd = 3 # gene-id index
@@ -224,18 +232,24 @@ function main()
     s = split(chomp(i), '\t')
     genes = split(s[geneInd], ':')
 
-    # test if this is a unique junction/readset
+    # test if this is a unique junction/readset, short circuit by --uniq
     if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
       #set data
       @assert( length(s[1]) == 1 )
       curclass = s[1][1]
       dush!( dstore, curclass, s, arrType=typeof(s) )
-    
+      
+      # check if we have already loaded "dclass"
       seqs = masksplit(s[seqInd], '_')
-      if length(seqs) > 1 
+      if length(seqs) > 1 && pargs["load"] == nothing
         setClass!( dclass, curclass, seqs )
       end
     end
+  end
+
+  if pargs["save"] != nothing
+    save(pargs["save"], "dclass", dclass)
+    quit()
   end
 
   # finish and print.
