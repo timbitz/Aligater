@@ -77,11 +77,11 @@ function setClass!( dict::Dict{ASCIIString,Char}, class::Char, seqs; size=32, st
   seqB = seqs[2] * repeat(".", max( size - lenB, 0 ))
   # reset the lengths after padding
   lenA,lenB = length(seqA),length(seqB)
-  it=max(1, stepsize) # calculate the step size, as half the window size
+  it=max(1, Int(stepsize)) # calculate the step size, as half the window size
   # iterate through the cartesian product of windows in seqA and seqB by it step size
   for i in 1:it:(lenA-size)+1, j in 1:it:(lenB-size)+1
-    winA = seqA[i:i+size-1] # access substrings 
-    winB = seqB[j:j+size-1]
+    winA = seqA[i:(i+size-1)] # access substrings 
+    winB = seqB[j:(j+size-1)]
     keyA,keyB = winA < winB ? (winA,winB) : (winB,winA)
     jointkey = keyA * "_" * keyB
     # use non-exported ht_keyindex function to avoid over indexing hash
@@ -180,7 +180,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   for class in keys(dstore), s in dstore[class]
     seqs = masksplit(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
-      s[1] = string( setClass!( dclass, 'A', seqs ) )
+      s[1] = convert(ASCIIString, string( setClass!( dclass, 'A', seqs, stepsize=1 ) ))
     end
     
     # now if collapse flags are true then try to reclassify

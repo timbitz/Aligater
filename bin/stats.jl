@@ -75,7 +75,7 @@ include("dictext.jl")
 function parse_colfilt(toparse::ASCIIString)
   cap = match(r"(\d+)\:(.*)", toparse).captures
   @assert( length(cap) == 2 )
-  col = int(cap[1])
+  col = parse(Int, cap[1])
   reg = Regex(cap[2])
   col, reg
 end #--> (Integer, Regex)
@@ -102,7 +102,7 @@ function pseudoCnt(pset::Dict)
 end #--> Float
 
 # get probability of pairs
-function jointInteracProb(pset::Dict, key1, key2, denom = 1.0, pseudo = 0.0)
+function jointInteracProb{K,V}(pset::Dict{K,V}, key1::K, key2::K, denom = 1.0, pseudo = 0.0)
   if(!haskey(pset, key1) || !haskey(pset, key2))
     return( pseudo )
   end
@@ -113,14 +113,14 @@ end #--> Float
    and a background probability set and derives a probability
    set for those pairs and computes binomial p-values for the
    foreground counts =#
-function calculateBinomialStats(forecnt::Dict, backprob::Dict)
+function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64})
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
   const pseudo = pseudoCnt(backprob)
   const bonfCor::Int = length(keys(forecnt))
 
   foreprob = Dict{Tuple,Float64}()
-  retval = Dict{(String,String),Tuple}()
+  retval = Dict{Tuple{ASCIIString,ASCIIString},Any}()
  
   obsDen = 0.0
 
@@ -141,12 +141,12 @@ function calculateBinomialStats(forecnt::Dict, backprob::Dict)
     retval[(k1,k2)] = (k, expval, pval, k/expval)
   end
   retval
-end #--> Dict{(String,String), Tuple}
+end #--> Dict{(String,String), Any}
 
 # if the pairs --TODODOC
 function loadInteractionFile(io::IOStream, gInd::Int, cntInd::Int, col, reg)
   cset = Dict{Tuple,Float64}()
-  #sizehint!(cset, 100000) # allocate 100K pairs
+  sizehint!(cset, 100000) # allocate 100K pairs
   for l::ASCIIString in eachline( io )
     s = split(chomp(l), '\t')
     if isa(col, Integer) && isa(reg, Regex) && length(s) >= col
@@ -164,7 +164,7 @@ end #--> Dict{Tuple,Float64}
 # this does io and creates a cset structure of type Dict
 function loadBackgroundFile(io::IOStream, ind::Int; keyType=String, valType=Float64)
   cset = Dict{keyType,valType}()
-  #sizehint!(cset, 20000) # approx number of genes
+  sizehint!(cset, 30000) # approx number of genes
   for i::ASCIIString in eachline(io)
     s = split(chomp(i), '\t')
     #=genes = replace(s[ind], ":*NA:*", "") |> x->split(x, ':')
@@ -181,7 +181,7 @@ function varStatSummary( openwhat, refInd::Int, varstr::ASCIIString, col, reg )
   # helper functions:
   function parseVarStr( str::ASCIIString )
     sets = split(str, ',')
-    ret  = (Int,Char)[]
+    ret  = Tuple{Int,Char}[]
     for i in sets
       vcol,typ = map(parse, split(i, ':'))
       tchar = string(typ)[1]
@@ -219,7 +219,7 @@ function varStatSummary( openwhat, refInd::Int, varstr::ASCIIString, col, reg )
       # iterate through column & type pairs
       for (i,c) in varSet
         cType = letterToType( c ) # convert char to type
-        parSi = cType <: Number ? parse( s[i], raise=false ) : string( s[i] )
+        parSi = cType <: Number ? parse(cType, s[i], raise=false ) : string( s[i] )
         cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
                                     a,b = split(parSi, ':') |> toStrings
                                     reOrder( (a,b) )
@@ -266,10 +266,11 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
   forecnt  = loadInteractionFile(forehndl, geneInd, cntInd, c, r) 
   close(forehndl)
 
+  print(STDERR, "Calculating binomial stats..\n")
   # calculate p-values and return hash
   calculateBinomialStats( forecnt, pset ) # return stat hash
 end
-#--> Dict{(String,String), Tuple}
+#--> Dict{(String,String), Any}
 
 # final print function for stat array
 function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict() )

@@ -19,7 +19,7 @@ end #--> nothing
 function loaddict(file::ASCIIString)
    myconvert(x::Type{Char}, y) = string(y)[1]
    myconvert(x::Type{ASCIIString}, y) = convert(ASCIIString, string(y))
-   myconvert{T <: Number}(x::Type{T}, y) = convert(T, parse(y))
+   myconvert{T <: Number, S <: String}(x::Type{T}, y::S) = parse(T, y)
    myconvert(x, y) = convert(x, y)
    hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`))))
    dict = nothing
