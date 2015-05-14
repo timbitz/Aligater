@@ -206,8 +206,8 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
 end
 
 function masksplit( str, char )
-  replace( str, r"[a-z]", "" )
-  split( str, char )
+  rep = replace( str, r"[a-z]+", "" )
+  split( rep, char )
 end
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
