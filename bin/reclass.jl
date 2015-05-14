@@ -218,10 +218,10 @@ function main()
 
   # simplify ridiculous split string type
   # in case julia changes by version
-  const stype = typeof( split("a:b", ':') )
+  typealias SubType typeof( split("a:b", ':') )
 
   djunc  = Dict{ASCIIString,Bool}()
-  dstore = Dict{Char,Array{stype,1}}() 
+  dstore = Dict{Char,Array{SubType,1}}() 
   dclass = pargs["load"] == nothing ? Dict{ASCIIString,Char}() : loaddict(pargs["load"])
 
   const seqInd = 11 # sequence index of .lig
