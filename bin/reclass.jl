@@ -3,7 +3,7 @@
    Author: Tim Sterne-Weiler, 3/16/2015
    e-mail: tim.sterne.weiler@utoronto.ca
  
-   dev on stable julia 0.3.8
+   julia 0.4-dev
 =# 
 
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
@@ -186,7 +186,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
     # now if collapse flags are true then try to reclassify
     if pargs["biotype"]
       redbiotypes = join(reducef( reducebiotype, s ), ':')           
-      s = [s, redbiotypes]
+      s = [s; redbiotypes]
     end
     if pargs["geneid"]
       redgenes = join(reducef( reducegeneid, s ), ':')
@@ -195,7 +195,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
           s[1] = replace(s[1], r"[PI]", "S") #re-classify
         end
       end
-      s = [s, redgenes]
+      s = [s; redgenes]
     end
     # # # print to STDOUT # # # 
     println( join( s, '\t' ) )
@@ -225,6 +225,7 @@ function main()
   const seqInd = 11 # sequence index of .lig
   const geneInd = 3 # gene-id index
 
+  pargs["load"] == nothing && (sizehint(dclass, 1000000))
   # first iteration through file, store data, set structures
   for i::ASCIIString in eachline( STDIN )
     s = split(chomp(i), '\t')
