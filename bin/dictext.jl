@@ -4,6 +4,40 @@
    e-mail: tim.sterne.weiler@utoronto.ca
 
 =#
+using GZip
+
+# slow performance of HDF5 has promted [savedict, loaddict]:
+function savedict{K,V}( file::ASCIIString, dict::Dict{K,V} )
+  GZip.open(file, "w") do fh
+    println(fh, "@Dict{" * string(K) * "," * string(V) * "}:")
+    for k in keys(dict)
+      println(fh, string(k) * ">" * string(dict[k]))
+    end
+  end
+end #--> nothing
+
+function loaddict(file::ASCIIString)
+   myconvert(x::Type{ASCIIString}, y::Symbol) = convert(ASCIIString, string(y))
+   myconvert(x, y) = convert(x, y)
+   dict = nothing
+   GZip.open(file, "r") do fh
+    heads = split(chomp( readline(fh) ), r"@Dict{|,|}:")
+    @assert( length(heads) == 4 )
+    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[2]) )
+    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[3]) )
+    ktype = eval(parse(heads[2]))
+    vtype = eval(parse(heads[3]))
+    dict = Dict{ktype,vtype}()
+    for l in eachline(fh)
+      ismatch(r"^@", l) && continue
+      sub = split(chomp(l), '>')
+      key = myconvert(ktype, parse(sub[1]))
+      val = myconvert(vtype, parse(sub[2]))
+      dict[key] = val
+    end
+  end
+  dict
+end #--> Dict{K,V}
 
 # dictionary value increment
 # this should be standard imo.

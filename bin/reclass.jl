@@ -16,8 +16,7 @@ println(STDERR, "$head Loading Packages..")
 using ArgParse
 using StatsBase
 using Match
-using HDF5
-using JLD
+using GZip
 
 function parse_cmd()
   s = ArgParseSettings()
@@ -67,7 +66,7 @@ end #--> Bool
 # This function can both be used to set, and also get the class associated with two chimeric
 # sequences based on window size homology.  First pass should set the database then run a
 # second pass to retrieve the final results
-function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class::Char, seqs; size=32 )
+function setClass!( dict::Dict{ASCIIString,Char}, class::Char, seqs; size=32, stepsize=floor(size/3), set=false )
   @assert( length(seqs) >= 2 )
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
   classHeirArray( arr::Array{Char,1} ) = max( arr... ) #--> Char
@@ -79,27 +78,24 @@ function setClass!( doubleDict::Dict{ASCIIString,Dict{ASCIIString,Char}}, class:
   seqB = seqs[2] * repeat(".", max( size - lenB, 0 ))
   # reset the lengths after padding
   lenA,lenB = length(seqA),length(seqB)
-  it=max(1, floor(size/2)) # calculate the step size, as half the window size
+  it=max(1, stepsize) # calculate the step size, as half the window size
   # iterate through the cartesian product of windows in seqA and seqB by it step size
   for i in 1:it:(lenA-size)+1, j in 1:it:(lenB-size)+1
     winA = seqA[i:i+size-1] # access substrings 
     winB = seqB[j:j+size-1]
     keyA,keyB = winA < winB ? (winA,winB) : (winB,winA)
+    jointkey = keyA * "_" * keyB
     # use non-exported ht_keyindex function to avoid over indexing hash
-    indxA = Base.ht_keyindex( doubleDict, keyA )
-    if indxA <= 0 #initialize hash if necessary
-      doubleDict[keyA] = Dict{ASCIIString,Char}()
-      indxA = Base.ht_keyindex( doubleDict, keyA )
-    end
-    dictA = doubleDict.vals[indxA]
-    indxB = Base.ht_keyindex( dictA, keyB )
-    if indxB <= 0
-      dictA[keyB] = class #set val if none exists
+    indx = Base.ht_keyindex( dict, jointkey )
+    if indx <= 0
+      if set
+        dict[jointkey] = class #set val if none exists
+      end
       #length(retarray) <= 0 && push!(retarray, class)
       retval == 'Z' && (retval = class)
     else
-      curVal = classHeirPair( dictA.vals[indxB], class )
-      dictA.vals[indxB] = curVal
+      curVal = classHeirPair( dict.vals[indx], class )
+      dict.vals[indx] = curVal
       #push!(retarray, curVal)
       retval = classHeirPair( retval, curVal )
     end
@@ -186,7 +182,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   for class in keys(dstore), s in dstore[class]
     seqs = masksplit(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
-      s[1] = string( setClass!( dclass, 'A', seqs ) )
+      s[1] = string( setClass!( dclass, 'A', seqs, stepsize=1 ) )
     end
     
     # now if collapse flags are true then try to reclassify
@@ -226,13 +222,13 @@ function main()
 
   djunc  = Dict{ASCIIString,Bool}()
   dstore = Dict{Char,Array{stype,1}}() 
-  dclass = pargs["load"] == nothing ? Dict{ASCIIString,Dict{ASCIIString,Char}}() : load(pargs["load"], "dclass")
+  dclass = pargs["load"] == nothing ? Dict{ASCIIString,Char}() : loaddict(pargs["load"])
 
   const seqInd = 11 # sequence index of .lig
   const geneInd = 3 # gene-id index
 
   # first iteration through file, store data, set structures
-  for i in eachline( STDIN )
+  for i::ASCIIString in eachline( STDIN )
     s = split(chomp(i), '\t')
     genes = split(s[geneInd], ':')
 
@@ -246,13 +242,14 @@ function main()
       # check if we have already loaded "dclass"
       seqs = masksplit(s[seqInd], '_')
       if length(seqs) > 1 && pargs["load"] == nothing
-        setClass!( dclass, curclass, seqs )
+        setClass!( dclass, curclass, seqs, set=true )
       end
     end
   end
 
   if pargs["save"] != nothing
-    save(pargs["save"], "dclass", dclass)
+#    save(pargs["save"], "dclass", dclass)
+    savedict( pargs["save"], dclass )
     quit()
   end
 
