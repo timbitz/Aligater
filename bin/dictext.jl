@@ -17,8 +17,11 @@ function savedict{K,V}( file::ASCIIString, dict::Dict{K,V} )
 end #--> nothing
 
 function loaddict(file::ASCIIString)
-   myconvert(x::Type{ASCIIString}, y::Symbol) = convert(ASCIIString, string(y))
+   myconvert(x::Type{Char}, y) = string(y)[1]
+   myconvert(x::Type{ASCIIString}, y) = convert(ASCIIString, string(y))
+   myconvert{T <: Number}(x::Type{T}, y) = convert(T, parse(y))
    myconvert(x, y) = convert(x, y)
+   hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`))))
    dict = nothing
    GZip.open(file, "r") do fh
     heads = split(chomp( readline(fh) ), r"@Dict{|,|}:")
@@ -28,11 +31,11 @@ function loaddict(file::ASCIIString)
     ktype = eval(parse(heads[2]))
     vtype = eval(parse(heads[3]))
     dict = Dict{ktype,vtype}()
+    sizehint!(dict, hint)
     for l in eachline(fh)
-      ismatch(r"^@", l) && continue
       sub = split(chomp(l), '>')
-      key = myconvert(ktype, parse(sub[1]))
-      val = myconvert(vtype, parse(sub[2]))
+      key = myconvert(ktype, sub[1])
+      val = myconvert(vtype, sub[2])
       dict[key] = val
     end
   end

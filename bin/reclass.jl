@@ -16,7 +16,6 @@ println(STDERR, "$head Loading Packages..")
 using ArgParse
 using StatsBase
 using Match
-using GZip
 
 function parse_cmd()
   s = ArgParseSettings()
@@ -45,7 +44,7 @@ end
 # ### ### ### ### ###  FUNCTIONS ## ### ### ### ### ##
 ## ### ### ### ### ### ### ### ### ### ### ### ### ## #
 
-include("dictext.jl") #--> dush!, dinc!, dnorm!
+include("dictext.jl") #--> savedict, loaddict, dush!, dinc!, dnorm!
 
 function isUniqueJunc!( used::Dict{ASCIIString,Bool}, seq, genes )
   m = match(r"([AGCTUN]{5}_[AGCTUN]{5})", seq)
@@ -71,7 +70,7 @@ function setClass!( dict::Dict{ASCIIString,Char}, class::Char, seqs; size=32, st
   classHeirPair( a::Char, b::Char ) = a < b ? b : a  #--> Char
   classHeirArray( arr::Array{Char,1} ) = max( arr... ) #--> Char
 #  retarray = Char[]
-  retval = 'Z'
+  retval = class
   lenA,lenB = map(length, seqs)
   # pad a sequence if it is shorter than our target window size
   seqA = seqs[1] * repeat(".", max( size - lenA, 0 ))
@@ -90,9 +89,8 @@ function setClass!( dict::Dict{ASCIIString,Char}, class::Char, seqs; size=32, st
     if indx <= 0
       if set
         dict[jointkey] = class #set val if none exists
+        #length(retarray) <= 0 && push!(retarray, class)
       end
-      #length(retarray) <= 0 && push!(retarray, class)
-      retval == 'Z' && (retval = class)
     else
       curVal = classHeirPair( dict.vals[indx], class )
       dict.vals[indx] = curVal
@@ -182,7 +180,7 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   for class in keys(dstore), s in dstore[class]
     seqs = masksplit(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
-      s[1] = string( setClass!( dclass, 'A', seqs, stepsize=1 ) )
+      s[1] = string( setClass!( dclass, 'A', seqs ) )
     end
     
     # now if collapse flags are true then try to reclassify
