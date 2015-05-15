@@ -225,7 +225,7 @@ function main()
   const seqInd = 11 # sequence index of .lig
   const geneInd = 3 # gene-id index
 
-  pargs["load"] == nothing && (sizehint(dclass, 1000000))
+  pargs["load"] == nothing && (sizehint!(dclass, 1000000))
   # first iteration through file, store data, set structures
   for i::ASCIIString in eachline( STDIN )
     s = split(chomp(i), '\t')
