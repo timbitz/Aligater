@@ -132,7 +132,7 @@ function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64
 
   for (k1,k2) in keys(forecnt)
     prob = foreprob[(k1,k2)] / obsDen
-    bin = Binomial(int(n), prob)
+    bin = Binomial(Int(n), prob)
     k = forecnt[(k1,k2)]
     pval = ccdf(bin, k-1)
     pval *= bonfCor
@@ -215,11 +215,11 @@ function varStatSummary( openwhat, refInd::Int, varstr::ASCIIString, col, reg )
       end
       # get reference key.
       refKey = sort( split(s[refInd], ':') )
-      k = tuple(refKey...) # main refKey k
+      k = tuple(refKey...)[1:2] # main refKey k
       # iterate through column & type pairs
       for (i,c) in varSet
         cType = letterToType( c ) # convert char to type
-        parSi = cType <: Number ? parse(cType, s[i], raise=false ) : string( s[i] )
+        parSi = cType <: Number ? parse(cType, string(s[i]) ) : string( s[i] )
         cVal  = cType <: Tuple ? begin # if tuple check if properly ordered
                                     a,b = split(parSi, ':') |> toStrings
                                     reOrder( (a,b) )

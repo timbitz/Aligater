@@ -180,22 +180,22 @@ function reclassReduceAndPrint( dclass::Dict, dstore::Dict, pargs, seqInd )
   for class in keys(dstore), s in dstore[class]
     seqs = masksplit(s[seqInd], '_')
     if length(seqs) > 1 # try to reclassify
-      s[1] = convert(ASCIIString, string( setClass!( dclass, 'A', seqs, stepsize=1 ) ))
+      s[1] = convert(ASCIIString, string( setClass!( dclass, s[1][1], seqs, stepsize=1 ) ))
     end
     
     # now if collapse flags are true then try to reclassify
     if pargs["biotype"]
-      redbiotypes = join(reducef( reducebiotype, s ), ':')           
-      s = [s; redbiotypes]
+      redbiotypes = reducef( reducebiotype, s )           
+      s = [s; join(redbiotypes, ':')]
     end
     if pargs["geneid"]
-      redgenes = join(reducef( reducegeneid, s ), ':')
+      redgenes = reducef( reducegeneid, s )
       if length(redgenes) >= 2
         if length(unique(redgenes)) == 1
           s[1] = replace(s[1], r"[PI]", "S") #re-classify
         end
       end
-      s = [s; redgenes]
+      s = [s; join(redgenes, ':')]
     end
     # # # print to STDOUT # # # 
     println( join( s, '\t' ) )
