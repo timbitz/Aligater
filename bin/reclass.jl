@@ -46,13 +46,14 @@ end
 
 include("dictext.jl") #--> savedict, loaddict, dush!, dinc!, dnorm!
 
-function isUniqueJunc!( used::Dict{ASCIIString,Bool}, seq, genes )
+function isUniqueJunc!{K <: String}( used::Dict{K,Bool}, seq, genes, dbar::Dict{K,K}, name )
+  barcode = get(dbar, name, "")
   m = match(r"([AGCTUN]{5}_[AGCTUN]{5})", seq)
   cap = m.captures[1]
   m = match(r"([AGCTUN]+)_([AGCTUN]+)", seq)
   lLen,rLen = length(m.captures[1]), length(m.captures[2])
   geneid = sort( genes )
-  key = join(geneid, ":") * "_$cap:$lLen:$rLen"
+  key = join(geneid, ":") * "_$cap:$lLen:$rLen:" * barcode
   retbool = false
   if !( haskey( used, key ) )
       used[key] = true
@@ -221,9 +222,11 @@ function main()
   djunc  = Dict{ASCIIString,Bool}()
   dstore = Dict{Char,Array{SubType,1}}() 
   dclass = pargs["load"] == nothing ? Dict{ASCIIString,Char}() : loaddict(pargs["load"])
+  dbarcode = pargs["barcode"] == nothing ? Dict{ASCIIString,ASCIIString}() : loaddict(pargs["barcode"])
 
   const seqInd = 11 # sequence index of .lig
   const geneInd = 4 # gene-id index
+  const nameInd = 10 # readName index
 
   pargs["load"] == nothing && (sizehint!(dclass, 1000000))
   # first iteration through file, store data, set structures
@@ -233,7 +236,7 @@ function main()
     genes = reducef( reducegeneid, s ) # TODO: this gets called twice. fix that.
 
     # test if this is a unique junction/readset, short circuit by --uniq
-    if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
+    if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes, dbarcode, s[nameInd] )
       #set data
       @assert( length(s[1]) == 1 )
       curclass = s[1][1]
