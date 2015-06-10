@@ -9,7 +9,7 @@ using GZip
 # slow performance of HDF5 has promted [savedict, loaddict]:
 function savedict{K,V}( file::ASCIIString, dict::Dict{K,V} )
   GZip.open(file, "w") do fh
-    println(fh, "@Dict{" * string(K) * "," * string(V) * "}:")
+    println(fh, "@Dict{" * string(K) * "," * string(V) * "}:" * length(dict))
     for k in keys(dict)
       println(fh, string(k) * ">" * string(dict[k]))
     end
@@ -21,13 +21,14 @@ function loaddict(file::ASCIIString)
    myconvert(x::Type{ASCIIString}, y) = convert(ASCIIString, string(y))
    myconvert{T <: Number, S <: String}(x::Type{T}, y::S) = parse(T, y)
    myconvert(x, y) = convert(x, y)
-   hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`))))
+   #hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`)))) # --deprecated 6/10/15 tsw
    dict = nothing
    GZip.open(file, "r") do fh
     heads = split(chomp( readline(fh) ), r"@Dict{|,|}:")
     @assert( length(heads) == 4 )
     @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[2]) ) # must look like a type
     @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[3]) ) # before we allow parse()
+    hint  = convert(Int, heads[4])
     ktype = eval(parse(heads[2]))
     vtype = eval(parse(heads[3]))
     dict = Dict{ktype,vtype}()
