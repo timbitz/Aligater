@@ -26,8 +26,8 @@ function loaddict(file::ASCIIString)
    GZip.open(file, "r") do fh
     heads = split(chomp( readline(fh) ), r"@Dict{|,|}:")
     @assert( length(heads) == 4 )
-    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[2]) )
-    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[3]) )
+    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[2]) ) # must look like a type
+    @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[3]) ) # before we allow parse()
     ktype = eval(parse(heads[2]))
     vtype = eval(parse(heads[3]))
     dict = Dict{ktype,vtype}()

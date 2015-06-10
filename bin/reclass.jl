@@ -223,13 +223,14 @@ function main()
   dclass = pargs["load"] == nothing ? Dict{ASCIIString,Char}() : loaddict(pargs["load"])
 
   const seqInd = 11 # sequence index of .lig
-  const geneInd = 3 # gene-id index
+  const geneInd = 4 # gene-id index
 
   pargs["load"] == nothing && (sizehint!(dclass, 1000000))
   # first iteration through file, store data, set structures
   for i::ASCIIString in eachline( STDIN )
     s = split(chomp(i), '\t')
-    genes = split(s[geneInd], ':')
+    #genes = split(s[geneInd], ':')
+    genes = reducef( reducegeneid, s ) # TODO: this gets called twice. fix that.
 
     # test if this is a unique junction/readset, short circuit by --uniq
     if !pargs["uniq"] || isUniqueJunc!( djunc, s[seqInd], genes )
@@ -257,4 +258,4 @@ function main()
 end
 #########
 main()
-#########
+########

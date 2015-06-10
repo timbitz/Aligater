@@ -48,6 +48,7 @@ $path =~ s/\/$0$//;
 my $outputCore = strftime 'Output_%F_%H.%M.%S', localtime;
 
 my $base64Flag = 0;
+my $applyHashFlag = 0;
 my $suppressAlnFlag = 0;
 
 # this variable suppresses chimeric output in favor of non-chimeric reads
@@ -60,6 +61,7 @@ my $rmskFile;
 
 GetOptions("o=s" => \$outputCore, 
            "base" => \$base64Flag,
+           "hash" => \$applyHashFlag,
            "noaln" => \$suppressAlnFlag, 
 	   "nochim" => \$nonChimeraFlag,
            "noanti" => \$STRAND_SPECIFIC, #TODO
@@ -152,9 +154,11 @@ while(my $l = <>) {
   explode "Invalid SAM format!\n" unless(defined($a[0]) and isInt($a[1]));
 
   # substitute current readname for cleaner md5
-  $a[0] = ($base64Flag) ? md5_base64($a[0]) : md5_hex($a[0]);
-  $a[0] = substr($a[0], 0, 16);  # 10 ** 24 should be enough
-   
+  if($applyHashFlag) {
+    $a[0] = ($base64Flag) ? md5_base64($a[0]) : md5_hex($a[0]);
+    $a[0] = substr($a[0], 0, 16);  # 10 ** 24 should be enough
+  } 
+
   if($a[0] ne $curRead and $curRead ne "") {
     # before moving to a new read, process current read's alignments
     # from $alnHash

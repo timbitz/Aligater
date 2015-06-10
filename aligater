@@ -4,6 +4,8 @@
 #  e-mail: tim.sterne.weiler@utoronto.ca
 #
 
+#  Main executable to call sub-tools
+
 use warnings;
 use strict;
 
