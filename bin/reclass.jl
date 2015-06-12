@@ -36,6 +36,13 @@ function parse_cmd()
     "--save"
       help = "store to file the resulting 'dclass' in HDF5 as calculated on the input data"
       arg_type = ASCIIString 
+    "--barcode"
+      help = "random barcode associated with each read in jlz format (optional)"
+      arg_type = ASCIIString
+    "--size"
+      help = "nmer size to use for index-based reclassification"
+      arg_type = Int
+      default = 32
   end
   return parse_args(s)
 end
@@ -53,7 +60,7 @@ function isUniqueJunc!{K <: String}( used::Dict{K,Bool}, seq, genes, dbar::Dict{
   m = match(r"([AGCTUN]+)_([AGCTUN]+)", seq)
   lLen,rLen = length(m.captures[1]), length(m.captures[2])
   geneid = sort( genes )
-  key = join(geneid, ":") * "_$cap:$lLen:$rLen:" * barcode
+  key = join(geneid, ":") * "_$cap:" * barcode
   retbool = false
   if !( haskey( used, key ) )
       used[key] = true
@@ -141,8 +148,10 @@ end #--> ASCIIString
 
 function reducebiotype( geneid, biotype, repeatname, repeatclass )
   biotype = replace(biotype, r"Mt-", "")
-  ismatch(r"(srp|sn|t|r)RNA", biotype) && return(biotype)
-  ismatch(r"SNOR|SCAR", geneid) && return("snoRNA")
+  ismatch(r"(srp|sn|r)RNA", biotype) && return(biotype)
+  ismatch(r"tRNA", biotype) && return("tRNA")
+  ismatch(r"SNOR|SCAR|(^ACA)", geneid) && return("snoRNA")
+  ismatch(r"VT.*RNA", geneid) && return("vtRNA")
   ismatch(r"7SK_RNA", repeatname) && return(repeatname)
   ismatch(r"U(3|8|9|\d{2,+})|snoRNA", repeatname) && return("snoRNA")   
   ismatch(r"snRNA", repeatname) && return("snRNA")
@@ -245,7 +254,7 @@ function main()
       # check if we have already loaded "dclass"
       seqs = masksplit(s[seqInd], '_')
       if length(seqs) > 1 && pargs["load"] == nothing
-        setClass!( dclass, curclass, seqs, set=true )
+        setClass!( dclass, curclass, seqs, size=pargs["size"], set=true )
       end
     end
   end

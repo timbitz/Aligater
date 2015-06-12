@@ -9,7 +9,7 @@ using GZip
 # slow performance of HDF5 has promted [savedict, loaddict]:
 function savedict{K,V}( file::ASCIIString, dict::Dict{K,V} )
   GZip.open(file, "w") do fh
-    println(fh, "@Dict{" * string(K) * "," * string(V) * "}:" * length(dict))
+    println(fh, "@Dict{" * string(K) * "," * string(V) * "}:" * string(length(dict)))
     for k in keys(dict)
       println(fh, string(k) * ">" * string(dict[k]))
     end
@@ -28,10 +28,10 @@ function loaddict(file::ASCIIString)
     @assert( length(heads) == 4 )
     @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[2]) ) # must look like a type
     @assert( ismatch(r"^[A-Z|a-z|0-9]+$", heads[3]) ) # before we allow parse()
-    hint  = convert(Int, heads[4])
     ktype = eval(parse(heads[2]))
     vtype = eval(parse(heads[3]))
     dict = Dict{ktype,vtype}()
+    hint  = parse(Int, heads[4])
     sizehint!(dict, hint)
     for l in eachline(fh)
       sub = split(chomp(l), '>')
