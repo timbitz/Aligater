@@ -60,7 +60,7 @@ function isUniqueJunc!{K <: String}( used::Dict{K,Bool}, seq, genes, dbar::Dict{
   m = match(r"([AGCTUN]+)_([AGCTUN]+)", seq)
   lLen,rLen = length(m.captures[1]), length(m.captures[2])
   geneid = sort( genes )
-  key = join(geneid, ":") * "_$cap:" * barcode
+  key = join(geneid, ":") * "_$cap:$lLen:$rLen:" * barcode
   retbool = false
   if !( haskey( used, key ) )
       used[key] = true
@@ -149,8 +149,10 @@ end #--> ASCIIString
 function reducebiotype( geneid, biotype, repeatname, repeatclass )
   biotype = replace(biotype, r"Mt-", "")
   ismatch(r"(srp|sn|r)RNA", biotype) && return(biotype)
-  ismatch(r"tRNA", biotype) && return("tRNA")
-  ismatch(r"SNOR|SCAR|(^ACA)", geneid) && return("snoRNA")
+  ismatch(r"tRNA", repeatclass) && return("tRNA")
+  ismatch(r"SNOR|SCAR|^ACA", geneid) && return("snoRNA")
+  ismatch(r"RMRP", geneid) && return("RNase_MRP")
+  ismatch(r"RPPH", geneid) && return("RNase_P")
   ismatch(r"VT.*RNA", geneid) && return("vtRNA")
   ismatch(r"7SK_RNA", repeatname) && return(repeatname)
   ismatch(r"U(3|8|9|\d{2,+})|snoRNA", repeatname) && return("snoRNA")   
