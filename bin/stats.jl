@@ -117,7 +117,7 @@ function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
   const pseudo = pseudoCnt(backprob)
-  const bonfCor::Int = length(keys(forecnt))
+  const bonfCor = length(keys(forecnt))
 
   foreprob = Dict{Tuple,Float64}()
   retval = Dict{Tuple{ASCIIString,ASCIIString},Any}()
