@@ -60,7 +60,7 @@ function isUniqueJunc!{K <: String}( used::Dict{K,Bool}, seq, genes, dbar::Dict{
   m = match(r"([AGCTUN]+)_([AGCTUN]+)", seq)
   lLen,rLen = length(m.captures[1]), length(m.captures[2])
   geneid = sort( genes )
-  key = join(geneid, ":") * "_$cap:$lLen:$rLen:" * barcode
+  key = join(geneid, ":") * "_$cap:$lLen:" * barcode
   retbool = false
   if !( haskey( used, key ) )
       used[key] = true
