@@ -478,7 +478,7 @@ sub getHybridCode {
 # as the maximum.  #It returns this as two scalars ( indNum, nextDiff )
 sub chimeraUniqueness {
   my($sortAlnArr, $alnHash) = @_;
-  my $MINDIFF = 20;
+  my $MINDIFF = 16;
   my $indNum = 0;  # keep track of the number of alignments with the same maximal score
   my $bestScore = $alnHash->{ $sortAlnArr->[0] }->[0]; # record best score.
   my $nextDiff = $bestScore; # find the difference between the max score and the next best score.
