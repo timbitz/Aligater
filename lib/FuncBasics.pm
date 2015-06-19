@@ -27,6 +27,8 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
        isInt
        maxOfArray
        minOfArray
+       uniqArray
+       uniqArrayCnt
        sumOfArray
        sumOfHash
        intersect
@@ -45,6 +47,8 @@ our @EXPORT = qw(
        isInt
        maxOfArray
        minOfArray
+       uniqArray
+       uniqArrayCnt
        sumOfArray
        sumOfHash	
        intersect
@@ -112,6 +116,20 @@ sub minOfArray {
   my(@inp) = @_; 
   my(@index) = sort { $inp[$a] <=> $inp[$b] } 0 .. $#inp; 
   return($index[0], $inp[$index[0]]); 
+}
+
+sub uniqArray {
+  my(@inp) = @_;
+  my(%uniq);
+  foreach my $i (@inp) { $uniq{$i} = 1; }
+  return(keys %uniq)
+}
+
+sub uniqArrayCnt {
+  my(@inp) = @_;
+  my(%uniq);
+  foreach my $i (@inp) { $uniq{$i} = 1; }
+  return(scalar keys %uniq)
 }
 
 sub sumOfHash {

@@ -34,7 +34,7 @@ function parse_cmd()
       help = "previously stored background file for 'dclass' in HDF5 format"
       arg_type = ASCIIString
     "--save"
-      help = "store to file the resulting 'dclass' in HDF5 as calculated on the input data"
+      help = "store to file the resulting 'dclass' in jlz format as calculated on the input data"
       arg_type = ASCIIString 
     "--barcode"
       help = "random barcode associated with each read in jlz format (optional)"
