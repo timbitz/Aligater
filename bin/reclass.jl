@@ -238,6 +238,7 @@ function main()
   const seqInd = 11 # sequence index of .lig
   const geneInd = 4 # gene-id index
   const nameInd = 10 # readName index
+  const ligqInd = 13 # LIGQ index
 
   pargs["load"] == nothing && (sizehint!(dclass, 1000000))
   # first iteration through file, store data, set structures
@@ -251,6 +252,11 @@ function main()
       #set data
       @assert( length(s[1]) == 1 )
       curclass = s[1][1]
+      #check ligq for intramolecular matches
+      if curclass != 'S' && ismatch(s[ligqInd], r"\[\d+\]")
+        s[1] = replace(s[1], r"[PI]", "S")
+        curclass = 'S'
+      end
       dush!( dstore, curclass, s, arrType=typeof(s) )
       
       # check if we have already loaded "dclass"
