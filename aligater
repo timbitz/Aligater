@@ -124,7 +124,9 @@ if($subCommand eq "align") {
   close POST;
 } elsif($subCommand =~ /reclass|stats|table/) {
   system("bash", "-c", "which julia > /dev/null 2> /dev/null") and
-        die "[aligater]: Please download/install 'julia' to path!\n";  
+        die "[aligater]: Please download/install 'julia' to path!\n";
+  my $juliaver = `julia --version`;
+  $juliaver =~ /0.4.\d/ or die "[aligater]: julia version must be 0.4.X!\n";  
   system("bash", "-c", "$path/bin/$subCommand.jl @ARGV");
 }
 
