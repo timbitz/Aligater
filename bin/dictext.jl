@@ -7,16 +7,16 @@
 using GZip
 
 # slow performance of HDF5 has promted [savedict, loaddict]:
-function savedict{K,V}( file::ASCIIString, dict::Dict{K,V} )
+function savedict{K,V}( file::String, dict::Dict{K,V} )
   GZip.open(file, "w") do fh
     println(fh, "@Dict{" * string(K) * "," * string(V) * "}:" * string(length(dict)))
     for k in keys(dict)
-      println(fh, string(k) * ">" * string(dict[k]))
+      println(fh, string(k) * "˧" * string(dict[k]))
     end
   end
 end #--> nothing
 
-function loaddict(file::ASCIIString)
+function loaddict(file::String)
    myconvert(x::Type{Char}, y) = string(y)[1]
    myconvert(x::Type{ASCIIString}, y) = convert(ASCIIString, string(y))
    myconvert{T <: Number, S <: String}(x::Type{T}, y::S) = parse(T, y)
@@ -34,7 +34,7 @@ function loaddict(file::ASCIIString)
     hint  = parse(Int, heads[4])
     sizehint!(dict, hint)
     for l in eachline(fh)
-      sub = split(chomp(l), '>')
+      sub = split(chomp(l), '˧')
       key = myconvert(ktype, sub[1])
       val = myconvert(vtype, sub[2])
       dict[key] = val

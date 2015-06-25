@@ -70,7 +70,8 @@ sub parseRegion {
   my $reg  = shift; 
   return unless defined $reg;
   if(ref($reg)) { return(@{$reg}); }
-  my(@a) = split(/\:/, $reg); 
+  my(@a) = split(/\:/, $reg);
+  return unless defined $a[1]; 
   my(@b) = split(/\-/, $a[1]); 
   if(scalar(@a) == 3) { 
     return($a[0], $b[0], $b[1], $a[2]); 
