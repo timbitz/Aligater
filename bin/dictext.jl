@@ -18,7 +18,7 @@ end #--> nothing
 
 function loaddict(file::String)
    myconvert(x::Type{Char}, y) = string(y)[1]
-   myconvert(x::Type{ASCIIString}, y) = convert(ASCIIString, string(y))
+   myconvert{T <: String}(x::Type{T}, y) = convert(T, string(y))
    myconvert{T <: Number, S <: String}(x::Type{T}, y::S) = parse(T, y)
    myconvert(x, y) = convert(x, y)
    #hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`)))) # --deprecated 6/10/15 tsw
@@ -69,17 +69,16 @@ end #--> nothing
 
 
 # normalize numeric dictionary values
-function dnorm!{K, V<:Number}(dict::Dict{K,V})
-  const n = sum( collect( values(dict) ) )
+function dnorm!{K, V<:Number}(dict::Dict{K,V}, n = sum(collect(values(dict))) )
   @assert( n > 0 )
   for i in keys(dict)
     dict[i] /= n
   end #normalize
 end #--> nothing
 
+
 # normalize numeric dictionary values
-function dnorm!(dict::Dict)
-  const n = sum( collect( values(dict) ) )
+function dnorm!(dict::Dict, n = sum(collect(values(dict))) )
   @assert( n > 0 )
   for i in keys(dict)
     @assert( isa(dict[i], Number) )

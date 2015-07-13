@@ -60,6 +60,9 @@ function parse_cmd()
     "--nc"
       help = "normalization constants, applied to each of --nd as a comma separated list."
       arg_type = ASCIIString
+    "--exprOut", "-e"
+      help = "file name to output background expression values to"
+      arg_type = ASCIIString
   end
   return parse_args(s)
 end
@@ -259,6 +262,8 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
   # process the probability distribution
   pset = deepcopy(cset) # multinomial probabilities
   dnorm!( pset ) # normalize dict
+
+  ### PRINT EXPR HERE JLZ FILE? ###
 
   # iterate through foreground
   print(STDERR, "Loading Foreground $forefile..\n")
