@@ -60,9 +60,10 @@ function parse_cmd()
     "--nc"
       help = "normalization constants, applied to each of --nd as a comma separated list."
       arg_type = ASCIIString
-    "--exprOut", "-e"
-      help = "file name to output background expression values to"
+    "--rpm"
+      help = "function to combine the background expression values for RPM column"
       arg_type = ASCIIString
+      default = "min"
   end
   return parse_args(s)
 end
@@ -116,7 +117,7 @@ end #--> Float
    and a background probability set and derives a probability
    set for those pairs and computes binomial p-values for the
    foreground counts =#
-function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64})
+function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64}, rpmset::Dict{S,Float64}, rpmFunc::Function)
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
   const pseudo = pseudoCnt(backprob)
@@ -141,7 +142,9 @@ function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64
     pval *= bonfCor
     pval = (pval > 1.0) ? one(pval) : pval
     expval = prob * n
-    retval[(k1,k2)] = (k, expval, pval, k/expval)
+    rset_k1 = haskey(rpmset, k1) ? rpmset[k1] : 0
+    rset_k2 = haskey(rpmset, k2) ? rpmset[k2] : 0
+    retval[(k1,k2)] = (k, expval, pval, k/expval, rpmFunc(rset_k1, rset_k2))
   end
   retval
 end #--> Dict{(String,String), Any}
@@ -263,8 +266,13 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
   pset = deepcopy(cset) # multinomial probabilities
   dnorm!( pset ) # normalize dict
 
-  ### PRINT EXPR HERE JLZ FILE? ###
-
+  # if --rpm then print abundance levels also
+  @assert( ismatch(r"^[A-Z|a-z|0-9]+$", pargs["rpm"]) )
+  rpmFunc = eval(parse(pargs["rpm"]))
+  @assert( typeof(rpmFunc) <: Function )
+  rset = deepcopy(cset)
+  dnorm!(rset, 1/1000000) # reads per M
+  
   # iterate through foreground
   print(STDERR, "Loading Foreground $forefile..\n")
   forehndl = open(forefile, "r")
@@ -273,7 +281,7 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
 
   print(STDERR, "Calculating binomial stats..\n")
   # calculate p-values and return hash
-  calculateBinomialStats( forecnt, pset ) # return stat hash
+  calculateBinomialStats( forecnt, pset, rset, rpmFunc ) # return stat hash
 end
 #--> Dict{(String,String), Any}
 
@@ -320,13 +328,13 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
     both = union( ksone, kstwo )
     # iterat ehrough shared set.
     for (k1,k2) in both
-      aK, aExp, aPval, aObsExp = haskey(aHsh,(k1,k2)) ? aHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
-      bK, bExp, bPval, bObsExp = haskey(bHsh,(k1,k2)) ? bHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
+      aK, aExp, aPval, aObsExp, aRpm = haskey(aHsh,(k1,k2)) ? aHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0, 0.0)
+      bK, bExp, bPval, bObsExp, bRpm = haskey(bHsh,(k1,k2)) ? bHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0, 0.0)
       a_b = (aK / normarr[1]) / (bK / normarr[2])
       exp_a_b = (aExp / normarr[1]) / (bExp / normarr[2])
       full_a_b = a_b / exp_a_b
       aPval <= alpha || continue # filter if p-value is above cutoff
-      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%.1f\t%d\t%.1f\t%.2e\t%.2e", k1, k2, full_a_b, a_b, exp_a_b, aK, aK/aExp, bK, bK/bExp, aPval, bPval )
+      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%.1f\t%d\t%.1f\t%.2e\t%.2e\t%.1f\t%.1f", k1, k2, full_a_b, a_b, exp_a_b, aK, aK/aExp, bK, bK/bExp, aPval, bPval, aRpm, bRpm )
       printVardict( io, vardict, (k1,k2) )
     end #endfor
   end #endif
