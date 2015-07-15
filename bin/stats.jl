@@ -270,7 +270,7 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
   @assert( ismatch(r"^[A-Z|a-z|0-9]+$", pargs["rpm"]) )
   rpmFunc = eval(parse(pargs["rpm"]))
   @assert( typeof(rpmFunc) <: Function )
-  rset = deepcopy(cset)
+  rset = deepcopy(pset)
   dnorm!(rset, 1/1000000) # reads per M
   
   # iterate through foreground
