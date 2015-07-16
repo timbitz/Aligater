@@ -117,7 +117,7 @@ end #--> Float
    and a background probability set and derives a probability
    set for those pairs and computes binomial p-values for the
    foreground counts =#
-function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64}, rpmset::Dict{S,Float64}, rpmFunc::Function)
+function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64})
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
   const pseudo = pseudoCnt(backprob)
@@ -142,9 +142,7 @@ function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64
     pval *= bonfCor
     pval = (pval > 1.0) ? one(pval) : pval
     expval = prob * n
-    rset_k1 = haskey(rpmset, k1) ? rpmset[k1] : 0
-    rset_k2 = haskey(rpmset, k2) ? rpmset[k2] : 0
-    retval[(k1,k2)] = (k, expval, pval, k/expval, rpmFunc(rset_k1, rset_k2))
+    retval[(k1,k2)] = (k, expval, pval, k/expval)
   end
   retval
 end #--> Dict{(String,String), Any}
@@ -248,7 +246,7 @@ function varStatSummary( openwhat, refInd::Int, varstr::ASCIIString, col, reg )
 end #--> Dict{Int,Dict{Tuple, ? }}
 
 # central function for processing a foreground background filename pair
-function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, pargs)
+#=function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, pargs)
   # fetch options.
   const backInd = pargs["bi"]
   const geneInd = pargs["gi"]
@@ -282,13 +280,15 @@ function loadFilesAndCalculate(forefile::ASCIIString, backfile::ASCIIString, par
   print(STDERR, "Calculating binomial stats..\n")
   # calculate p-values and return hash
   calculateBinomialStats( forecnt, pset, rset, rpmFunc ) # return stat hash
-end
+end =#  ##Deprecated 7/16/2015
 #--> Dict{(String,String), Any}
 
 # final print function for stat array
-function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict() )
+function printStats( io, statarr::Array, rpmarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(), rpmFunc=min )
   aHsh = statarr[1]
+  aRpm = rpmarr[1]
   @assert( isa(aHsh, Dict) )
+  @assert( isa(aRpm, Dict) )
 
   # internal print function for variable keys
   function printVardict( io, dict, refkey )
@@ -322,19 +322,31 @@ function printStats( io, statarr::Array; normarr=[1,1], alpha=1.0, vardict=Dict(
     end
   elseif length(statarr) == 2
     bHsh = statarr[2]
+    bRpm = rpmarr[2]
     @assert( isa(bHsh, Dict) )
+    @assert( isa(bRpm, Dict) )
     ksone  = collect( keys( aHsh ) )
     kstwo  = collect( keys( bHsh ) )
     both = union( ksone, kstwo )
+    # function to check existance of and reduce rpm values.
+    function apply_rpmfunc{K <: String,V <: Float64}( hsh1::Dict{K,V}, hsh2::Dict{K,V}, key1::K, key2::K, func::Function)
+      begin
+        val1 = get(hsh1, key1, zero(V))
+        val2 = get(hsh2, key2, zero(V))
+        func(val1, val2)
+      end
+    end #--> V
     # iterat ehrough shared set.
     for (k1,k2) in both
-      aK, aExp, aPval, aObsExp, aRpm = haskey(aHsh,(k1,k2)) ? aHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0, 0.0)
-      bK, bExp, bPval, bObsExp, bRpm = haskey(bHsh,(k1,k2)) ? bHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0, 0.0)
+      aK, aExp, aPval, aObsExp = haskey(aHsh,(k1,k2)) ? aHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
+      bK, bExp, bPval, bObsExp = haskey(bHsh,(k1,k2)) ? bHsh[(k1,k2)] : (0.5, 0.5, 1.0, 1.0)
+      aRpmVal = apply_rpmfunc( aRpm, aRpm, k1, k2, rpmFunc )
+      bRpmVal = apply_rpmfunc( bRpm, bRpm, k1, k2, rpmFunc )
       a_b = (aK / normarr[1]) / (bK / normarr[2])
       exp_a_b = (aExp / normarr[1]) / (bExp / normarr[2])
       full_a_b = a_b / exp_a_b
       aPval <= alpha || continue # filter if p-value is above cutoff
-      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%.1f\t%d\t%.1f\t%.2e\t%.2e\t%.1f\t%.1f", k1, k2, full_a_b, a_b, exp_a_b, aK, aK/aExp, bK, bK/bExp, aPval, bPval, aRpm, bRpm )
+      @printf( io, "%s,%s\t%.1f\t%.1f\t%.1f\t%d\t%.1f\t%d\t%.1f\t%.2e\t%.2e\t%.1f\t%.1f", k1, k2, full_a_b, a_b, exp_a_b, aK, aK/aExp, bK, bK/bExp, aPval, bPval, aRpmVal, bRpmVal )
       printVardict( io, vardict, (k1,k2) )
     end #endfor
   end #endif
@@ -346,6 +358,12 @@ end #--> nothing
 function main()
   pargs = parse_cmd()
 
+  const backInd = pargs["bi"]
+  const geneInd = pargs["gi"]
+  const cntInd  = pargs["ci"] == nothing ? geneInd : pargs["ci"]
+
+  c,r = parse_colfilt(pargs["filt"])
+
   # check options.
   ndArray = pargs["nd"] == nothing ? [""] : split(pargs["nd"], ",")
   normArray = pargs["nc"] == nothing ? [1,1] : map(parse, split(pargs["nc"], ","))
@@ -355,8 +373,14 @@ function main()
 
   ndParsed = ASCIIString[]
   stats = Dict[]
-  
+  rpms  = Dict[]  
+
   varstat = nothing  #scope
+
+  # parse --rpm flag to Function
+  @assert( ismatch(r"^[A-Z|a-z|0-9]+$", pargs["rpm"]) )
+  rpmFunc = eval(parse(pargs["rpm"]))
+  @assert( typeof(rpmFunc) <: Function, "typeof(--rpm) must be Julia Function!" )
 
   # iterate through delimited names list
   for (ndIter,nd) in enumerate(ndArray)
@@ -368,9 +392,34 @@ function main()
     push!(ndParsed, forefile)
 
     # calculate p-values
-    stathsh = loadFilesAndCalculate( forefile, backfile, pargs )
+    #stathsh = loadFilesAndCalculate( forefile, backfile, pargs ) ##Deprecated 7/16/2015
+
+    print(STDERR, "Loading Background $backfile..\n")
+    backhndl = open(backfile, "r")
+    cset = loadBackgroundFile(backhndl, backInd, valType=Float64)
+    close(backhndl)
+
+    print(STDERR, "Processing probability distribution..\n")
+    # process the probability distribution
+    pset = deepcopy(cset) # multinomial probabilities
+    dnorm!( pset ) # normalize dict
+
+    # if --rpm then print abundance levels also
+    rset = deepcopy(pset)
+    dnorm!(rset, 1/1000000) # reads per M
+
+    # iterate through foreground
+    print(STDERR, "Loading Foreground $forefile..\n")
+    forehndl = open(forefile, "r")
+    forecnt  = loadInteractionFile(forehndl, geneInd, cntInd, c, r)
+    close(forehndl)
+
+    print(STDERR, "Calculating binomial stats..\n")
+    # calculate p-values and return hash
+    stathsh = calculateBinomialStats( forecnt, pset ) # return stat hash
     
     push!(stats, stathsh) 
+    push!(rpms, rset)
   end  
 
   if length(pargs["vs"]) > 0
@@ -380,7 +429,7 @@ function main()
   end
 
   @assert(0 < length(stats) <= 2, "--nd does not contain properly formatted arguments!")
-  printStats( STDOUT, stats, alpha=pargs["alpha"], normarr=normArray, vardict=varstat )
+  printStats( STDOUT, stats, rpms, alpha=pargs["alpha"], normarr=normArray, vardict=varstat, rpmFunc=rpmFunc )
 
 end
 #####################################################
