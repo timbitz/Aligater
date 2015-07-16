@@ -17,13 +17,7 @@ require Exporter;
  
 our @ISA = qw(Exporter); 
  
-# Items to export into callers namespace by default. Note: do not export 
-# names by default without a very good reason. Use EXPORT_OK instead. 
-# Do not simply export all your public functions/methods/constants. 
- 
-# This allows declaration       use GeneRegion ':all'; 
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK 
-# will save memory. 
+
 our %EXPORT_TAGS = ( 'all' => [ qw( 
    load_BED
 ) ] ); 
@@ -36,16 +30,7 @@ our @EXPORT = qw(
 
 our $VERSION = '0.01'; 
 
-
-
-########################################################################################## 
-
-########################################################################################### 
-#                                                                                         # 
 #      Subroutines (EXPORTED)                                                             # 
-#                                                                                         # 
-########################################################################################### 
-
 
 ###  THE OBJECT CONSTRUCTOR!!
 sub new {
@@ -110,11 +95,6 @@ sub bedOverlap {
   return((scalar(@results) > 0) ? \@results : undef);
 }
 
-###########################################################################################
-###
-###
-### 
-###
 
 sub printBED {
   ### TO DO
