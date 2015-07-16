@@ -17,13 +17,7 @@ require Exporter;
  
 our @ISA = qw(Exporter); 
  
-# Items to export into callers namespace by default. Note: do not export 
-# names by default without a very good reason. Use EXPORT_OK instead. 
-# Do not simply export all your public functions/methods/constants. 
- 
-# This allows declaration       use GeneRegion ':all'; 
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK 
-# will save memory. 
+
 our %EXPORT_TAGS = ( 'all' => [ qw( 
    load_GFF_or_GTF
    initGeneLookup
@@ -41,16 +35,6 @@ our @EXPORT = qw(
 ); 
 
 our $VERSION = '0.01'; 
-
-
-
-########################################################################################## 
-
-########################################################################################### 
-#                                                                                         # 
-#      Subroutines (EXPORTED)                                                             # 
-#                                                                                         # 
-########################################################################################### 
 
 
 ###  THE OBJECT CONSTRUCTOR!!
@@ -297,11 +281,8 @@ sub coorAliasLookup {
   return coorOverlap($lookupCoor, $coord);
 }
 
-########################################################################################### 
-#                                                                                         # 
+
 #      Subroutines (BACKEND)                                                              # 
-#                                                                                         # 
-########################################################################################### 
 
 
 #this function collects attributes from the last column of GTF file.
