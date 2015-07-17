@@ -53,6 +53,8 @@ function parse_cmd()
     "--norepeat","-r"
       help = "split names and remove _\\S+"
       action = :store_true
+    "--sumOnly"
+      action = :store_true
   end
   return parse_args(s)
 end
@@ -137,9 +139,9 @@ function main()
   const mytype = pargs["integer"] ? Int64 : Float64;
 
   table,sum = load_interactionfile( STDIN, pargs["gi"], pargs["ci"], pargs["delim"], col, reg, ctype=mytype, spltflag=pargs["norepeat"] ) 
-  println(STDOUT, "#sum:$(sum)")
+  println(STDOUT, "$(sum)")
   
-  print_table( STDOUT, table; delim=pargs["outsep"], null=pargs["null"] ) 
+  pargs["sumOnly"] || print_table( STDOUT, table; delim=pargs["outsep"], null=pargs["null"] ) 
 end
 #####################################################
 # main execution here
