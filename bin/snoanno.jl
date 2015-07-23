@@ -112,7 +112,15 @@ function readfasta( io; regex = r">\s*(\S+)" )
 end #--> Dict{ASCIIString,ASCIIString}
 
 function binddistance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
-   
+   m = match( r"([ATGCU]+)", ligstruct ) # match antisense site
+   cut = match( r"|", ligstruct )
+   length(m.captures) == 0 && return (0,0)
+   offset,len = 0,0
+   if ind <= 1
+      offset = startpos + m.offsets[1]
+   else
+
+   end 
 end
 
 ###################################################################
