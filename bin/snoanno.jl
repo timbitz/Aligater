@@ -111,9 +111,8 @@ function readfasta( io; regex = r">\s*(\S+)" )
    rethash
 end #--> Dict{ASCIIString,ASCIIString}
 
-function binddistance( lig::ASCIIString, cdhash::Dict )
-    
-
+function binddistance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
+   
 end
 
 ###################################################################
@@ -134,10 +133,18 @@ function main()
      cdboxhash[k] = annotate_cdbox( snodict[k] )
    end
    
+   const geneInd = 25
+
    # now lets go through the pvl/lig data
    for l::ASCIIString in eachline(STDIN)
       s = split( l, '\t' )
-         
+      @assert( ismatch(r"SNORD", s[genInd]), "$(s[genInd]) doesn't appear to have a snoRNA in it? (SNORD)\n" )
+      ids = split( s[genInd], ',' )
+      ind = ismatch(r"SNORD", ids[1]) ? 1 : 2
+      @assert( ismatch(r"SNORD", ids[ind]) )
+      struct = s[ind+18]
+      start = split( s[14], ',' )[ind]
+      binddistance( ind, struct, start, cdboxhash, ids[ind] )
    end
 end
 ###################################################################
