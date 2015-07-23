@@ -13,6 +13,9 @@ function parse_cmd()
     "--snofile"
       help = "snoRNA fasta file"
       arg_type = ASCIIString
+    "--regex"
+      help = "snoRNA fasta regex with capture [optional]"
+      arg_type = ASCIIString
   end
   return parse_args(s)
 end
@@ -62,11 +65,11 @@ function annotate_cdbox( sno::ASCIIString )
 
    cboxseg = sno[1:20]
    cbox = searchregex(cboxreg, cboxseg)
-   @assert(cbox[1] > 0, "Cannot find cbox in $cboxseg!")
+   #@assert(cbox[1] > 0, "Cannot find cbox in $cboxseg!")
 
    dboxseg = sno[(end-20):end]
    (dboxpos,dboxmatch) = searchregex(dboxreg, dboxseg)
-   @assert(dboxpos > 0, "Cannot find dbox in $dboxseg!")
+   #@assert(dboxpos > 0, "Cannot find dbox in $dboxseg!")
    dboxpos += length(sno) - 20
    dbox = (dboxpos, dboxmatch)
 
@@ -81,25 +84,25 @@ function annotate_cdbox( sno::ASCIIString )
 end
 
 # this function reads a fasta file/io and returns a dict of {name,seq}
-function readfasta( io )
+function readfasta( io; regex = r">\s*(\S+)" )
    rethash = Dict{ASCIIString,ASCIIString}()  
 
    #internal funct for fasta header
-   function checkname( head::ASCIIString )
-      res = match(r"^>\s*(\S+)", head)
+   function checkname( head::ASCIIString, namereg::Regex )
+      res = match(namereg, head)
       @assert(length(res.captures[1]) > 0, "$head looks to be an incorrectly formated fasta header!")
      res.captures[1]
    end
   
    curseq = ""
    head = readline(fh)
-   curname = checkname( head ) 
+   curname = checkname( head, namereg ) 
    for line::ASCIIString in eachline( io )
       #finish up
       if line[1] == '>' #header line
          # push to dict
          rethash[curname] = curseq
-         curname = checkname( line )
+         curname = checkname( line, namereg )
          curseq = ""
       else #sequence line
         curseq *= chomp( uppercase(line) )
@@ -111,12 +114,21 @@ end #--> Dict{ASCIIString,ASCIIString}
 function main()
    pargs = parse_cmd()
 
+   fastareg = pargs["regex"] == nothing ? r"^>\s*(\S+)" : Regex(pargs["regex"])
+
    @assert(pargs["snofile"] != nothing, "you have to provide --snofile")
    snofile = pargs["snofile"]
-   open( snofile, "r" ) do fh
-      snodict = readfasta( fh )
-   end
+   fh = open( snofile, "r" )
+   snodict = readfasta( fh, regex=fastareg )
+   close(fh)
 
+   # try to annotate the C/D boxes
+   cdboxhash = Dict{ASCIIString, Tuple}()
+   for k in keys(snodict)
+     cdboxhash[k] = annotate_cdbox( snodict[k] )
+   end
+ 
+   # now lets go through the pvl/lig data
    for l::ASCIIString in eachline(STDIN)
       
    end
