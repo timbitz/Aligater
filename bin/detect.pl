@@ -1,14 +1,10 @@
 #!/usr/bin/env perl
-#
-##
 ##  Author: Tim Sterne-Weiler, timbitz (Oct 2014)
 ##  e-mail: tim.sterne.weiler@utoronto.ca
-##
 
 # This program accepts SAM format as stdin, and looks for chimeric reads.
 # It is designed to be called by `aligater` which pipes to samtools for BAM
 # format if necessary, though this is not required with SAM input.
-
 
 use warnings;
 use strict;
@@ -226,11 +222,7 @@ unless($suppressAlnFlag) {
   close $hybHndl;
 }
 
-#######################################################
-#						      #
 ################# BEGIN SUBROUTINES ###################
-#						      #
-#######################################################
 
 # Recursively process/collapse alignments.
 sub processAlignRec {

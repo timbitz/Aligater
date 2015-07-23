@@ -1,9 +1,7 @@
 #!/usr/bin/env perl
 #
-##
 ##  Author: Tim Sterne-Weiler, timbitz (Oct 2014)
 ##  e-mail: tim.sterne.weiler@utoronto.ca
-##
 
 use warnings;
 use strict;
@@ -334,11 +332,7 @@ if($RUNBLAST) { # lets run blast and remove ligations that aren't unique.
 }
 ## END MAIN ##
 
-#######################################################
-#                                                     #
 ######            BEGIN SUBROUTINES            ########
-#                                                     #
-#######################################################
 
 # this function runs the RactIP program for RNA-RNA interaction prediction
 # using dynamic programming using the -e parameter and an optional -P param file

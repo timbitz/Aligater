@@ -111,26 +111,33 @@ function readfasta( io; regex = r">\s*(\S+)" )
    rethash
 end #--> Dict{ASCIIString,ASCIIString}
 
+function binddistance( lig::ASCIIString, cdhash::Dict )
+    
+
+end
+
+###################################################################
 function main()
    pargs = parse_cmd()
-
+   
    fastareg = pargs["regex"] == nothing ? r"^>\s*(\S+)" : Regex(pargs["regex"])
-
+   
    @assert(pargs["snofile"] != nothing, "you have to provide --snofile")
    snofile = pargs["snofile"]
    fh = open( snofile, "r" )
    snodict = readfasta( fh, regex=fastareg )
    close(fh)
-
+   
    # try to annotate the C/D boxes
    cdboxhash = Dict{ASCIIString, Tuple}()
    for k in keys(snodict)
      cdboxhash[k] = annotate_cdbox( snodict[k] )
    end
- 
+   
    # now lets go through the pvl/lig data
    for l::ASCIIString in eachline(STDIN)
-      
+      s = split( l, '\t' )
+         
    end
 end
 ###################################################################
