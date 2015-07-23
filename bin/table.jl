@@ -89,7 +89,7 @@ function load_interactionfile(io, gInd::Int, cntInd::Int, delim, col, reg; ctype
     (ismatch(Regex(delim), s[gInd])) || continue
     k1,k2 = spltflag ? map( x->split(x, '_')[1], sort( split(s[gInd], delim) ) ) : sort( split(s[gInd], delim) )
 
-    if ismatch(r"sense|transcript|protein", k1) || ismatch(r"snoRNA|miRNA", k2)
+    if ismatch(r"sense|transcript|protein|mRNA|sens|int|lncRNA", k1) || ismatch(r"snoRNA|miRNA", k2)
       k1,k2 = k2,k1
     end
  
@@ -139,9 +139,9 @@ function main()
   const mytype = pargs["integer"] ? Int64 : Float64;
 
   table,sum = load_interactionfile( STDIN, pargs["gi"], pargs["ci"], pargs["delim"], col, reg, ctype=mytype, spltflag=pargs["norepeat"] ) 
-  println(STDOUT, "$(sum)")
+  pargs["sumOnly"] && println(STDOUT, "$(sum)")
   
-  pargs["sumOnly"] || print_table( STDOUT, table; delim=pargs["outsep"], null=pargs["null"] ) 
+  print_table( STDOUT, table; delim=pargs["outsep"], null=pargs["null"] ) 
 end
 #####################################################
 # main execution here

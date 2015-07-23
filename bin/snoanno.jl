@@ -80,10 +80,45 @@ function annotate_cdbox( sno::ASCIIString )
    (cbox, dprime, dbox)
 end
 
-function main()   
+# this function reads a fasta file/io and returns a dict of {name,seq}
+function readfasta( io )
+   rethash = Dict{ASCIIString,ASCIIString}()  
+
+   #internal funct for fasta header
+   function checkname( head::ASCIIString )
+      res = match(r"^>\s*(\S+)", head)
+      @assert(length(res.captures[1]) > 0, "$head looks to be an incorrectly formated fasta header!")
+     res.captures[1]
+   end
+  
+   curseq = ""
+   head = readline(fh)
+   curname = checkname( head ) 
+   for line::ASCIIString in eachline( io )
+      #finish up
+      if line[1] == '>' #header line
+         # push to dict
+         rethash[curname] = curseq
+         curname = checkname( line )
+         curseq = ""
+      else #sequence line
+        curseq *= chomp( uppercase(line) )
+      end
+   end
+   rethash
+end #--> Dict{ASCIIString,ASCIIString}
+
+function main()
+   pargs = parse_cmd()
+
+   @assert(pargs["snofile"] != nothing, "you have to provide --snofile")
+   snofile = pargs["snofile"]
+   open( snofile, "r" ) do fh
+      snodict = readfasta( fh )
+   end
+
    for l::ASCIIString in eachline(STDIN)
-      sno = uppercase(chomp(l))
-            
+      
    end
 end
 ###################################################################
