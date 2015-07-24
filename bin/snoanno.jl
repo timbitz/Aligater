@@ -111,16 +111,23 @@ function readfasta( io; regex = r">\s*(\S+)" )
    rethash
 end #--> Dict{ASCIIString,ASCIIString}
 
-function binddistance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
-   m = match( r"([ATGCU]+)", ligstruct ) # match antisense site
-   cut = match( r"|", ligstruct )
-   length(m.captures) == 0 && return (0,0)
-   offset,len = 0,0
+function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
+   antiregex = r"([ATGCU]+(?:[\.\(\)]{1,5}[ATGCU]+)?)"
+   m = match( antiregex, ligstruct ) # match antisense site
+   cut = match( r"(\|)", ligstruct )
+   length(m.captures) == 0 && return (0,0,0)
+   len = length(m.captures[1])
+   offset,lig = 0,0
    if ind <= 1
       offset = startpos + m.offsets[1]
+      lig = startpos + (length(cut.offsets) == 0 ? length(ligstruct) : cut.offsets[1])
    else
+      barpos = length(cut.offsets) == 0 ? 0 : cut.offsets[1]
+      offset = startpos - barpos + m.offsets[1]
+      lig = startpos
+   end
 
-   end 
+   (offset, len, lig)
 end
 
 ###################################################################
@@ -152,7 +159,7 @@ function main()
       @assert( ismatch(r"SNORD", ids[ind]) )
       struct = s[ind+18]
       start = split( s[14], ',' )[ind]
-      binddistance( ind, struct, start, cdboxhash, ids[ind] )
+      bind_distance( ind, struct, start, cdboxhash, ids[ind] )
    end
 end
 ###################################################################
