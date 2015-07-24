@@ -15,21 +15,29 @@ Table of Contents
 Requirements
 ------------
 
-- julia 0.4
-        - ArgParse
-        - Match
-        - Distributions
-        - GZip
+_julia 0.4_
+ * ArgParse
+ * Match
+ * Distributions
+ * GZip
 
-- perl v5 Packages:
-        - Parallel::ForkManager
-        - Getopt::Long
+_perl v5 Packages_
+ * Parallel::ForkManager
+ * Getopt::Long
 
 Installation
 ------------
+
+If you are new to `julia`, the latest 0.4-dev binaries can be downloaded from the nightly builds [64-bit](https://status.julialang.org/download/linux-x86_64) or [32-bit](https://status.julialang.org/download/linux-i686).  The packages can then be installed manually by opening the `julia` REPL:
+```julia
+  pkgs = ("ArgParse", "Match", "Distributions", "GZip")
+  map( x->Pkg.add(x), pkgs ) 
+```
 
 Usage
 -----
 
 - [Database Setup](#database-setup)
 - [Alignment and Detection](#alignment-and-detection)
+- [Lig Output Format](#lig-format)
+- [Post Processing](#post-processing)
