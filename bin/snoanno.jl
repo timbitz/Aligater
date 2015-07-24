@@ -117,7 +117,8 @@ function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cd
    m = match( antiregex, ligstruct ) # match antisense site
    cut = match( r"(\|)", ligstruct )
    length(m.captures) == 0 && return (0,0,0)
-   len = length(m.captures[1])
+   cap = m.captures[1]
+   len = length(cap)
    offset,lig = 0,0
    if ind <= 1
       offset = startpos + m.offsets[1]
@@ -127,11 +128,20 @@ function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cd
       offset = startpos - barpos + m.offsets[1]
       lig = startpos
    end
-   (offset, len, lig)
+   (offset, cap, lig)
 end #--> Tuple{Int64,Int64,Int64}
 
-function print_heat( io, binddist::Tuple{Int64,Int64,Int64}, maxsize; nais="NA" )
-   
+function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::ASCIIString, ligpos::I, anchorpos::I; nais="NA" )
+   prestr = rowname * "\t"
+   str = repeat( "0", anchorpos )
+   antinum = replace( antiseq, r"[AUCGT]", "1" ) |> x->replace( x, r"\.", "0" )
+   str = str[1:offset-1] * antinum * str[offset+length(antinum):end]
+   str = str[1:ligpos-1] * "2" * str[ligpos+1:end]
+   rev = reverse(str)
+   for i = 1:length(rev)
+      cur = rev[i]
+      println( io, prestr * string(i*-1) * "\t$cur" )
+   end
 end
 
 ###################################################################
@@ -149,7 +159,7 @@ function main()
    # try to annotate the C/D boxes
    cdboxhash = Dict{ASCIIString, Tuple}()
    for k in keys(snodict)
-     cdboxhash[k] = annotate_cdbox( snodict[k] )
+      cdboxhash[k] = annotate_cdbox( snodict[k] )
    end
    
    const geneInd = 25
@@ -163,8 +173,15 @@ function main()
       @assert( ismatch(r"SNORD", ids[ind]) )
       struct = s[ind+18]
       start = split( s[14], ',' )[ind]
-      bindtuple = bind_distance( ind, struct, start, cdboxhash, ids[ind] )
-      
+      (antioffset, cap, lig) = bind_distance( ind, struct, start )
+      cdboxes = cdboxhash[ids[ind]]
+      if antioffset <= cdboxes[2][1] # D' box offset
+         print_heatrow( STDOUT, inds[ind] * "\tDpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
+      else if antioffset <= cdboxes[3][1] # D box offset
+         print_heatrow( STDOUT, inds[ind] * "\tDBOX", antioffset, cap, lig, cdboxes[3][1] )
+      else
+         continue
+      end
    end
 end
 ###################################################################
