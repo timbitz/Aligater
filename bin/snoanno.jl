@@ -14,7 +14,7 @@ function parse_cmd()
       help = "snoRNA fasta file"
       arg_type = ASCIIString
     "--regex"
-      help = "snoRNA fasta regex with capture [optional]"
+      help = "snoRNA fasta header regex with capture [optional]"
       arg_type = ASCIIString
   end
   return parse_args(s)
@@ -81,7 +81,7 @@ function annotate_cdbox( sno::ASCIIString )
    println(STDERR, "$(cbox[2]) ... $(dprime[2]) ... $(dbox[2])")
 
    (cbox, dprime, dbox)
-end
+end #-->Tuple{Tuple}
 
 # this function reads a fasta file/io and returns a dict of {name,seq}
 function readfasta( io; regex = r">\s*(\S+)" )
@@ -111,6 +111,7 @@ function readfasta( io; regex = r">\s*(\S+)" )
    rethash
 end #--> Dict{ASCIIString,ASCIIString}
 
+# find the distance from the 5' end of the transcript of the antisense region
 function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
    antiregex = r"([ATGCU]+(?:[\.\(\)]{1,5}[ATGCU]+)?)"
    m = match( antiregex, ligstruct ) # match antisense site
@@ -126,8 +127,11 @@ function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cd
       offset = startpos - barpos + m.offsets[1]
       lig = startpos
    end
-
    (offset, len, lig)
+end #--> Tuple{Int64,Int64,Int64}
+
+function print_heat( io, binddist::Tuple{Int64,Int64,Int64}, maxsize; nais="NA" )
+   
 end
 
 ###################################################################
@@ -159,7 +163,8 @@ function main()
       @assert( ismatch(r"SNORD", ids[ind]) )
       struct = s[ind+18]
       start = split( s[14], ',' )[ind]
-      bind_distance( ind, struct, start, cdboxhash, ids[ind] )
+      bindtuple = bind_distance( ind, struct, start, cdboxhash, ids[ind] )
+      
    end
 end
 ###################################################################
