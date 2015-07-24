@@ -33,11 +33,13 @@ If you are new to `julia`, the latest 0.4-dev binaries can be downloaded from th
   pkgs = ("ArgParse", "Match", "Distributions", "GZip")
   map( x->Pkg.add(x), pkgs ) 
 ```
+The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 Usage
 -----
 
 - [Database Setup](#database-setup)
 - [Alignment and Detection](#alignment-and-detection)
-- [Lig Output Format](#lig-format)
 - [Post Processing](#post-processing)
+- [Statistics](#statistics)
+- 
