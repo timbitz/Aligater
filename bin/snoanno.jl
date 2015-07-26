@@ -16,6 +16,7 @@ function parse_cmd()
     "--regex"
       help = "snoRNA fasta header regex with capture [optional]"
       arg_type = ASCIIString
+      default = "^>\\s*.*_.*_(\\S+)_.*"
   end
   return parse_args(s)
 end
@@ -90,19 +91,19 @@ function readfasta( io; regex = r">\s*(\S+)" )
    #internal funct for fasta header
    function checkname( head::ASCIIString, namereg::Regex )
       res = match(namereg, head)
-      @assert(length(res.captures[1]) > 0, "$head looks to be an incorrectly formated fasta header!")
-     res.captures[1]
+      @assert(res != nothing, "$head looks to be an incorrectly formated fasta header!")
+      chomp(res.captures[1])
    end
   
    curseq = ""
-   head = readline(fh)
-   curname = checkname( head, namereg ) 
+   head = readline(io)
+   curname = checkname( head, regex ) 
    for line::ASCIIString in eachline( io )
       #finish up
       if line[1] == '>' #header line
          # push to dict
          rethash[curname] = curseq
-         curname = checkname( line, namereg )
+         curname = checkname( line, regex )
          curseq = ""
       else #sequence line
         curseq *= chomp( uppercase(line) )
@@ -112,31 +113,32 @@ function readfasta( io; regex = r">\s*(\S+)" )
 end #--> Dict{ASCIIString,ASCIIString}
 
 # find the distance from the 5' end of the transcript of the antisense region
-function bind_distance( ind::Int64, ligstruct::ASCIIString, startpos::Int64 , cdhash::Dict, name::ASCIIString )
+function bind_distance( ind::Int64, ligstruct::String, startpos::Int64 )
    antiregex = r"([ATGCU]+(?:[\.\(\)]{1,5}[ATGCU]+)?)"
    m = match( antiregex, ligstruct ) # match antisense site
    cut = match( r"(\|)", ligstruct )
-   length(m.captures) == 0 && return (0,0,0)
+   m == nothing && return (1,"",1)
    cap = m.captures[1]
    len = length(cap)
    offset,lig = 0,0
    if ind <= 1
       offset = startpos + m.offsets[1]
-      lig = startpos + (length(cut.offsets) == 0 ? length(ligstruct) : cut.offsets[1])
+      lig = startpos + (cut == nothing ? length(ligstruct) : cut.offsets[1])
    else
-      barpos = length(cut.offsets) == 0 ? 0 : cut.offsets[1]
+      barpos = cut == nothing ? 0 : cut.offsets[1]
       offset = startpos - barpos + m.offsets[1]
       lig = startpos
    end
    (offset, cap, lig)
 end #--> Tuple{Int64,Int64,Int64}
 
-function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::ASCIIString, ligpos::I, anchorpos::I; nais="NA" )
+function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::String, ligpos::I, anchorpos::I; nais="NA" )
+   println(STDERR, "$io\t$rowname\t$offset\t$antiseq\t$ligpos\t$anchorpos")
    prestr = rowname * "\t"
    str = repeat( "0", anchorpos )
    antinum = replace( antiseq, r"[AUCGT]", "1" ) |> x->replace( x, r"\.", "0" )
    str = str[1:offset-1] * antinum * str[offset+length(antinum):end]
-   str = str[1:ligpos-1] * "2" * str[ligpos+1:end]
+   str = ligpos > anchorpos ? str : str[1:ligpos-1] * "2" * str[ligpos+1:end]
    rev = reverse(str)
    for i = 1:length(rev)
       cur = rev[i]
@@ -161,24 +163,25 @@ function main()
    for k in keys(snodict)
       cdboxhash[k] = annotate_cdbox( snodict[k] )
    end
-   
-   const geneInd = 25
+  
+   const genInd = 25
 
    # now lets go through the pvl/lig data
-   for l::ASCIIString in eachline(STDIN)
+   for l in eachline(STDIN)
       s = split( l, '\t' )
       @assert( ismatch(r"SNORD", s[genInd]), "$(s[genInd]) doesn't appear to have a snoRNA in it? (SNORD)\n" )
-      ids = split( s[genInd], ',' )
+      ids = map(x->chomp(x), split( s[genInd], ':' ))
       ind = ismatch(r"SNORD", ids[1]) ? 1 : 2
       @assert( ismatch(r"SNORD", ids[ind]) )
       struct = s[ind+18]
-      start = split( s[14], ',' )[ind]
+      start = parse(Int, split( s[14], ',' )[ind])
       (antioffset, cap, lig) = bind_distance( ind, struct, start )
+      @assert( haskey(cdboxhash, "SNORD9" ), "$(ids[ind]) doesn't have a key!" )
       cdboxes = cdboxhash[ids[ind]]
       if antioffset <= cdboxes[2][1] # D' box offset
-         print_heatrow( STDOUT, inds[ind] * "\tDpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
-      else if antioffset <= cdboxes[3][1] # D box offset
-         print_heatrow( STDOUT, inds[ind] * "\tDBOX", antioffset, cap, lig, cdboxes[3][1] )
+         print_heatrow( STDOUT, ids[ind] * "\tDpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
+      elseif antioffset <= cdboxes[3][1] # D box offset
+         print_heatrow( STDOUT, ids[ind] * "\tDBOX", antioffset, cap, lig, cdboxes[3][1] )
       else
          continue
       end
