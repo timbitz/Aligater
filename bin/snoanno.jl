@@ -132,7 +132,7 @@ function bind_distance( ind::Int64, ligstruct::String, startpos::Int64 )
    (offset, cap, lig)
 end #--> Tuple{Int64,Int64,Int64}
 
-function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::String, ligpos::I, anchorpos::I; nais="NA" )
+function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::String, ligpos::I, anchorpos::I; nais="NA", order="" )
    println(STDERR, "$io\t$rowname\t$offset\t$antiseq\t$ligpos\t$anchorpos")
    prestr = rowname * "\t"
    str = repeat( "0", anchorpos )
@@ -142,7 +142,7 @@ function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antis
    rev = reverse(str)
    for i = 1:length(rev)
       cur = rev[i]
-      println( io, prestr * string(i*-1) * "\t$cur" )
+      println( io, prestr * string(i*-1) * order * "\t$cur" )
    end
 end
 
@@ -166,6 +166,10 @@ function main()
   
    const genInd = 25
 
+   output = Dict{ASCIIString, Tuple}()
+   ligdist = Dict{ASCIIString, Int64}()
+   capsize = Dict{ASCIIString, Int64}()
+
    # now lets go through the pvl/lig data
    for l in eachline(STDIN)
       s = split( l, '\t' )
@@ -179,12 +183,35 @@ function main()
       @assert( haskey(cdboxhash, "SNORD9" ), "$(ids[ind]) doesn't have a key!" )
       cdboxes = cdboxhash[ids[ind]]
       if antioffset <= cdboxes[2][1] # D' box offset
-         print_heatrow( STDOUT, ids[ind] * "\tDpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
+         #print_heatrow( STDOUT, ids[ind] * "_DpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
+         curname_key = ids[ind] * "_DpBOX"
+         outtup = (curname_key, antioffset, cap, lig, cdboxes[2][1] ) 
+         outdist = ( cdboxes[2][1] - (round(Int,length(cap) / 2) + antioffset) )
       elseif antioffset <= cdboxes[3][1] # D box offset
-         print_heatrow( STDOUT, ids[ind] * "\tDBOX", antioffset, cap, lig, cdboxes[3][1] )
+         #print_heatrow( STDOUT, ids[ind] * "_DBOX", antioffset, cap, lig, cdboxes[3][1] )
+         curname_key = ids[ind] * "_DBOX"
+         outtup = (curname_key, antioffset, cap, lig, cdboxes[3][1] ) 
+         outdist = ( cdboxes[3][1] - (round(Int,length(cap) / 2) + antioffset) )
       else
          continue
       end
+
+      # add to output dicts
+      storedlen = get( capsize, curname_key, 0 )
+      if length(cap) > storedlen
+         output[curname_key]  = outtup
+         ligdist[curname_key] = outdist
+         capsize[curname_key] = length(cap)
+      end
+   end
+
+   # print in order
+   keysarr = collect( keys( ligdist ) )
+   i = 1 # order iterator
+   for ord in sortperm( collect( values( ligdist ) ) )
+      outkey = keysarr[ord]
+      print_heatrow( STDOUT, output[outkey]..., order="\t" * string(i) )
+      i += 1
    end
 end
 ###################################################################
