@@ -132,17 +132,27 @@ function bind_distance( ind::Int64, ligstruct::String, startpos::Int64 )
    (offset, cap, lig)
 end #--> Tuple{Int64,Int64,Int64}
 
-function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::String, ligpos::I, anchorpos::I; nais="NA", order="" )
+function print_heatrow{I <: Integer}( io, rowname::ASCIIString, offset::I, antiseq::String, ligpos::I, anchorpos::I, totallen::I, boxes::Tuple; nais="NA", order="" )
    println(STDERR, "$io\t$rowname\t$offset\t$antiseq\t$ligpos\t$anchorpos")
    prestr = rowname * "\t"
-   str = repeat( "0", anchorpos )
+   str = repeat( "0", totallen )
+   for i = 1:3
+     (off, seq) = boxes[i]
+     off > 0 || continue
+     asnum = replace( seq, r"[AUCGT]", string(i+2) )
+     str = str[1:off-1] * asnum * str[off+length(asnum):end]
+   end
+
    antinum = replace( antiseq, r"[AUCGT]", "1" ) |> x->replace( x, r"\.", "0" )
    str = str[1:offset-1] * antinum * str[offset+length(antinum):end]
-   str = ligpos > anchorpos ? str : str[1:ligpos-1] * "2" * str[ligpos+1:end]
+
+   str = ligpos > totallen ? str : str[1:ligpos-1] * "2" * str[ligpos+1:end]
    rev = reverse(str)
+   pad = totallen - anchorpos
+   outiter = [ pad:-1:0; -1:-1:(-1*anchorpos)] 
    for i = 1:length(rev)
       cur = rev[i]
-      println( io, prestr * string(i*-1) * order * "\t$cur" )
+      println( io, prestr * string(outiter[i]) * order * "\t$cur" )
    end
 end
 
@@ -169,6 +179,7 @@ function main()
    output = Dict{ASCIIString, Tuple}()
    ligdist = Dict{ASCIIString, Int64}()
    capsize = Dict{ASCIIString, Int64}()
+   annobox = Dict{ASCIIString, Tuple}()
 
    # now lets go through the pvl/lig data
    for l in eachline(STDIN)
@@ -181,16 +192,16 @@ function main()
       start = parse(Int, split( s[14], ',' )[ind])
       (antioffset, cap, lig) = bind_distance( ind, struct, start )
       @assert( haskey(cdboxhash, "SNORD9" ), "$(ids[ind]) doesn't have a key!" )
-      cdboxes = cdboxhash[ids[ind]]
+      cdboxes = cdboxhash[ ids[ind] ]
+      snolen  = length( snodict[ ids[ind] ] )
+      curname_key = ids[ind] * "_" * ids[ ind == 1 ? 2 : 1 ]
       if antioffset <= cdboxes[2][1] # D' box offset
-         #print_heatrow( STDOUT, ids[ind] * "_DpBOX", antioffset, cap, lig, cdboxes[2][1] ) 
-         curname_key = ids[ind] * "_DpBOX"
-         outtup = (curname_key, antioffset, cap, lig, cdboxes[2][1] ) 
+         #curname_key = ids[ind] * "_DpBOX"
+         outtup = (curname_key, antioffset, cap, lig, cdboxes[2][1], snolen ) 
          outdist = ( cdboxes[2][1] - (round(Int,length(cap) / 2) + antioffset) )
       elseif antioffset <= cdboxes[3][1] # D box offset
-         #print_heatrow( STDOUT, ids[ind] * "_DBOX", antioffset, cap, lig, cdboxes[3][1] )
-         curname_key = ids[ind] * "_DBOX"
-         outtup = (curname_key, antioffset, cap, lig, cdboxes[3][1] ) 
+         #curname_key = ids[ind] * "_DBOX"
+         outtup = (curname_key, antioffset, cap, lig, cdboxes[3][1], snolen ) 
          outdist = ( cdboxes[3][1] - (round(Int,length(cap) / 2) + antioffset) )
       else
          continue
@@ -199,9 +210,10 @@ function main()
       # add to output dicts
       storedlen = get( capsize, curname_key, 0 )
       if length(cap) > storedlen
-         output[curname_key]  = outtup
-         ligdist[curname_key] = outdist
-         capsize[curname_key] = length(cap)
+         output[curname_key]  = outtup # store anno tuple
+         ligdist[curname_key] = outdist # store distance to nearest D box
+         capsize[curname_key] = length(cap) # store length of antisense
+         annobox[curname_key] = cdboxes #store tuple of c/d box annotations
       end
    end
 
@@ -210,7 +222,7 @@ function main()
    i = 1 # order iterator
    for ord in sortperm( collect( values( ligdist ) ) )
       outkey = keysarr[ord]
-      print_heatrow( STDOUT, output[outkey]..., order="\t" * string(i) )
+      print_heatrow( STDOUT, output[outkey]..., annobox[outkey], order="\t" * string(i) )
       i += 1
    end
 end
