@@ -34,7 +34,7 @@ my $verboseFlag = 0;
 
 my $alignThreads = 1;
 my $alignProg = "bowtie2";
-my $align_k = 250;
+my $align_k = 50; # default as of 8/10/15
 my $align_a = 0;
 
 my $alignVerySensLocal = "-R 3 -N 0 -L 16 -i S,1,0.50";
