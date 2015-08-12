@@ -24,6 +24,12 @@ _julia 0.4_
 _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
+ 
+
+_external software_
+ * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml)
+ * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
+ * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/` : nr, human_genomic, other_genomic
 
 Installation
 ------------
@@ -44,7 +50,7 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 The current database is for hg19, you can download it here: [hg19 transcriptome](http://google.com)
 
-It is also possible to use a different build or species, but automation of this process is not yet available, so you can e-mail for a synopsis of the required steps.
+It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  
 
 
 Usage
@@ -64,9 +70,14 @@ $ aligater -h
 
 ###Alignment and Detection###
 
-Using the default alignment parameters is recommended for LIGR-seq:
+Using the default alignment parameters is recommended for LIGR-seq and the step
+can be run as simply as:
 ```bash
-$ aligater align -x db [file.fq(.gz)]
+$ filename="somefile.fastq.gz"
+$ nodir=`basename $filename`
+$ prefastq=${nodir%%.*}
+
+$ aligater align --bam -x db [file.fq(.gz)] > bam/prefastq.bam
 ```
 
 But feel free to alter tham as you see fit for custom purposes:
@@ -82,8 +93,6 @@ $ aligater detect --gtf [annoFile.gtf] --rmsk [maskerFile.bed+] < alignFile.sam
 
 There are two parts to the post processing step `--blast` and `--ractip`
 `aligater post [--blast] [--ractip]`
-
-
 
 
 ###Reclassification###
