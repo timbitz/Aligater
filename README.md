@@ -15,6 +15,7 @@ Table of Contents
 Requirements
 ------------
 
+
 _julia 0.4_
  * ArgParse
  * Match
@@ -24,12 +25,13 @@ _julia 0.4_
 _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
- 
 
 _external software_
- * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml)
+ * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
  * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
  * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/` : nr, human_genomic, other_genomic
+ * (optional) [RactIP](rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
+ 
 
 Installation
 ------------
