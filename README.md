@@ -44,7 +44,7 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 The current database is for hg19, you can download it here: [hg19 transcriptome](http://google.com)
 
-It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  
+It is also possible to use a different build or species, but automation of this process is not yet available, so you can e-mail for a synopsis of the required steps.
 
 
 Usage
@@ -82,6 +82,8 @@ $ aligater detect --gtf [annoFile.gtf] --rmsk [maskerFile.bed+] < alignFile.sam
 
 There are two parts to the post processing step `--blast` and `--ractip`
 `aligater post [--blast] [--ractip]`
+
+
 
 
 ###Reclassification###
