@@ -140,10 +140,42 @@ $ aligater reclass --uniq --save database.jlz < lig/*.lig
 
 and then the actual reclassification step on each `lig` file:
 ```bash
-$ aligater reclass --uniq --load database.jlz < lig/$input.lig > lig/$input.reclass.lig
+$ aligater reclass --load database.jlz -g -b -u < lig/$input.lig > lig/$input.reclass.lig
 ```
 
 ###Statistics###
 
-This step produces the final output of the `aligater` package
+This step produces the final output of the `aligater` package and takes a number of command line options that require that the input file names be properly formatted! 
+
+The input expects two foreground files, a crosslinking reagent treated (xlink) or mock-treated/control (unxlink) which are identical file names other than some specific identifier that you could specify as a wildcard. For example:
+
+```bash
+$ xlinkfile="sample_rep1-xlink.final.lig"
+$ unxlinkfile="sample_rep1-unx.final.lig"
+
+$ foregroundfile="sample_rep1-%.final.lig"
+```
+along with an `--nd xlink,unx` flag which specifies the strings to insert into the `%` wildcard to make the two input files.
+
+Similarly, the two background files containing non-chimeric expression level `.lig` files must be similarly formatted with a `%` wildcard that will be interpolated with the same `--nd` strings.
+```bash
+$ backgroundfile="sample_rep1-%.expression.lig"
+
+$ nameParam="--fore $foregroundfile --back $backgroundfile --nd xlink,unx"
+```
+
+Additionally we have to supply the comma delimited normalization constants (total fastq input read numbers) `--nc` for the foreground files:
+```bash
+$ totalAMTreads=73217814
+$ totalMOCKreads=62648851
+
+$ normParam="--nc $totalAMTreads,$totalMOCKreads"
+```
+
+This makes up the core mandatory arguments to `aligater stats`:
+```bash
+$ aligater stats $nameParam $normParam > output.pvl
+```
+
+However there are a number of other optional arguments which can greatly expand the data compiled by `aligater stats` such as the `--vs` option which allows an arbitrary number of variable columns to summarize for each interaction.  For example to 
 
