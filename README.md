@@ -83,9 +83,9 @@ $ filename="somefile.fastq.gz"
 $ nodir=`basename $filename`
 $ prefastq=${nodir%%.*}
 
-$ aligater align -x db [file.fq(.gz)] > sam/prefastq.sam
+$ aligater align -x db [file.fq(.gz)] > sam/$prefastq.sam
 or
-$ aligater align --bam -x db [file.fq(.gz)] > bam/prefastq.bam
+$ aligater align --bam -x db [file.fq(.gz)] > bam/$prefastq.bam
 ```
 
 But feel free to alter tham as you see fit for custom purposes:
@@ -102,12 +102,12 @@ will print a [lig formatted](#file-formats) file to STDOUT.
 
 or if bam output was specified from the first command.
 ```bash
-$ samtools view -h bam/prefastq.bam | aligater detect $detectparam > lig/prefastq.lig
+$ samtools view -h bam/$prefastq.bam | aligater detect $detectparam > lig/$prefastq.lig
 ```
 
 ###Post Processing###
 
-There are two parts to the post processing step `--blast` (MANDATORY) and `--ractip` (OPTIONAL), each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
+There are a few parts to the post processing step, `--blast` (MANDATORY) and `--ractip` (OPTIONAL), each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
 
 ```bash
 aligater post [--blast] [--ractip]
@@ -117,7 +117,9 @@ It is recommended that these commands be run separately, to effectively make use
 
 The first command `aligater post --blast` should be considered mandatory, it is *not* recommended to skip this step.
 ```bash
+$ export BLASTDB="/path/to/blastdatabases/"
 
+$ aligater post --loose --blast < lig/$prefastq.lig > lig/$prefastq.blast.lig
 ```
 
 ###Reclassification###
@@ -125,12 +127,12 @@ The first command `aligater post --blast` should be considered mandatory, it is 
 This is a two part step, you need to first create a junction library `.jlz` from the
 annotations of all samples and replicates that you plan to compare:
 ```bash
-$ aligater reclass
+$ aligater reclass --uniq --save database.jlz < lig/*.lig
 ```
 
-and then the actual reclassification step:
+and then the actual reclassification step on each `lig` file:
 ```bash
-$ aligater reclass
+$ aligater reclass --uniq --load database.jlz < lig/$input.lig > lig/$input.reclass.lig
 ```
 
 ###Statistics###
