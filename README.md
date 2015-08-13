@@ -26,12 +26,12 @@ _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
 
-_mandatory external software_
+_external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
  * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
  * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/`: nr, human_genomic, other_genomic 
 
-_optional external software_
+_optional_
  * [RactIP](http://rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
  * [nibFrag](http://hgdownload.soe.ucsc.edu/admin/exe/) - faToNib to make nib genome files from fasta format
  * [faToNib](http://hgdownload.soe.ucsc.edu/admin/exe/) - nibFrag to quickly retrieve sequences from nib formatted chromosomes
@@ -83,12 +83,11 @@ $ filename="somefile.fastq.gz"
 $ nodir=`basename $filename`
 $ prefastq=${nodir%%.*}
 
-$ aligater align -x db [file.fq(.gz)] > sam/$prefastq.sam
-or
-$ aligater align --bam -x db [file.fq(.gz)] > bam/$prefastq.bam
+$ aligater align -x db $filename > sam/$prefastq.sam
 ```
+or `--bam` flag will pipe the output of aligater align into `samtools view -bS`
 
-But feel free to alter tham as you see fit for custom purposes:
+But feel free to alter other alignment parameters as you see fit for custom purposes:
 ```bash
 $ aligater align -h
 ```
@@ -96,7 +95,7 @@ $ aligater align -h
 The next step is detection, which can be piped from the first: `aligater align | aligater detect > out.lig`
 ```bash
 $ detectparam='--gtf [annoFile.gtf(.gz)] --gfam [gene_fam.txt(.gz)] --rmsk [maskerFile.bed(.gz)]'
-$ aligater detect $detectparam < alignFile.sam
+$ aligater detect $detectparam < sam/$prefastq.sam > lig/$prefastq.lig
 ```
 will print a [lig formatted](#file-formats) file to STDOUT.
 
@@ -107,20 +106,29 @@ $ samtools view -h bam/$prefastq.bam | aligater detect $detectparam > lig/$prefa
 
 ###Post Processing###
 
-There are a few parts to the post processing step, `--blast` (MANDATORY) and `--ractip` (OPTIONAL), each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
+There are a few parts to the post processing step, a number of filtering flags, a `--blast` (mandatory) step and a folding step using `--ractip` (optional), each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
 
 ```bash
-aligater post [--blast] [--ractip]
+aligater post [filtering_flags] [--blast] [--ractip] 
 ```
 
 It is recommended that these commands be run separately, to effectively make use system resources. For example, `--ractip` takes several hours with multiple cores (`-p`), but doesn't require much RAM.  Meanwhile, `--blast` does require significant RAM as well!
 
 The first command `aligater post --blast` should be considered mandatory, it is *not* recommended to skip this step.
-```bash
-$ export BLASTDB="/path/to/blastdatabases/"
+This step requires proper installation of `blastn` and the blast databases to the environmental variable `BLASTDB`.
 
-$ aligater post --loose --blast < lig/$prefastq.lig > lig/$prefastq.blast.lig
+```bash
+$ export BLASTDB="/path/to/blast/databases"
+$ blastn -version
+blastn: 2.2.28+
+Package: blast 2.2.28, build Mar 12 2013 16:52:31
+
+$ aligater post [--tmp (def: /tmp/aligater)] [-p] --loose --blast < lig/$prefastq.lig > lig/$prefastq.blast.lig
 ```
+Edit the `tmp` directory to hit and number of threads `-p` to use as necessary.
+
+
+
 
 ###Reclassification###
 
