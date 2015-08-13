@@ -80,7 +80,8 @@ GetOptions("gc=f" => \$gcLimit,
            "ractip" => \$RUNRACTIP,
            "blast" => \$RUNBLAST,
            "nib=s" => \$NIBDIR,
-           "nibrange=i" => \$NIBRANGE
+           "nibrange=i" => \$NIBRANGE,
+           "tmp=s" => \$tmpPath
 );
 
 $NIBDIR = abs_path($NIBDIR) if(defined($NIBDIR));
