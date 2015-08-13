@@ -26,12 +26,15 @@ _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
 
-_external software_
+_mandatory external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
  * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
- * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/` : nr, human_genomic, other_genomic (`export BLASTDB`)
- 
- * (optional) [RactIP](rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
+ * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/`: nr, human_genomic, other_genomic 
+
+_optional external software_
+ * [RactIP](http://rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
+ * [nibFrag](http://hgdownload.soe.ucsc.edu/admin/exe/) - faToNib to make nib genome files from fasta format
+ * [faToNib](http://hgdownload.soe.ucsc.edu/admin/exe/) - nibFrag to quickly retrieve sequences from nib formatted chromosomes
  
 
 Installation
