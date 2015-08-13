@@ -15,7 +15,6 @@ Table of Contents
 Requirements
 ------------
 
-
 _julia 0.4_
  * ArgParse
  * Match
@@ -93,8 +92,13 @@ $ aligater detect --gtf [annoFile.gtf] --rmsk [maskerFile.bed+] < alignFile.sam
 
 ###Post Processing###
 
-There are two parts to the post processing step `--blast` and `--ractip`
-`aligater post [--blast] [--ractip]`
+There are two parts to the post processing step `--blast` and `--ractip`, each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
+
+```bash
+aligater post [--blast] [--ractip]
+```
+
+It is recommended that these commands be run separately if on a qsub cluster, to effectively make use system resources. For example, `--ractip` takes many hours with multiple cores (`-p`), but doesn't require much RAM.  Meanwhile, `--blast` also is best used with multiple cores, but does require significant RAM as well!
 
 
 ###Reclassification###
