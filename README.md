@@ -11,6 +11,7 @@ Table of Contents
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [File Formats](#file-formats)
 
 Requirements
 ------------
@@ -28,7 +29,8 @@ _perl v5 Packages_
 _external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
  * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
- * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/` : nr, human_genomic, other_genomic
+ * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/` : nr, human_genomic, other_genomic (`export BLASTDB`)
+ 
  * (optional) [RactIP](rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
  
 
@@ -78,6 +80,8 @@ $ filename="somefile.fastq.gz"
 $ nodir=`basename $filename`
 $ prefastq=${nodir%%.*}
 
+$ aligater align -x db [file.fq(.gz)] > sam/prefastq.sam
+or
 $ aligater align --bam -x db [file.fq(.gz)] > bam/prefastq.bam
 ```
 
@@ -86,20 +90,32 @@ But feel free to alter tham as you see fit for custom purposes:
 $ aligater align -h
 ```
 
+The next step is detection, which can be piped from the first: `aligater align | aligater detect > out.lig`
 ```bash
-$ aligater detect --gtf [annoFile.gtf] --rmsk [maskerFile.bed+] < alignFile.sam
+$ detectparam='--gtf [annoFile.gtf(.gz)] --gfam [gene_fam.txt(.gz)] --rmsk [maskerFile.bed(.gz)]'
+$ aligater detect $detectparam < alignFile.sam
+```
+will print a [lig formatted](#file-formats) file to STDOUT.
+
+or if bam output was specified from the first command.
+```bash
+$ samtools view -h bam/prefastq.bam | aligater detect $detectparam > lig/prefastq.lig
 ```
 
 ###Post Processing###
 
-There are two parts to the post processing step `--blast` and `--ractip`, each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
+There are two parts to the post processing step `--blast` (MANDATORY) and `--ractip` (OPTIONAL), each requiring the use of external dependencies (installed to your `$path`), `blastn` and `ractip`, see [requirements](#requirements).
 
 ```bash
 aligater post [--blast] [--ractip]
 ```
 
-It is recommended that these commands be run separately if on a qsub cluster, to effectively make use system resources. For example, `--ractip` takes many hours with multiple cores (`-p`), but doesn't require much RAM.  Meanwhile, `--blast` also is best used with multiple cores, but does require significant RAM as well!
+It is recommended that these commands be run separately, to effectively make use system resources. For example, `--ractip` takes several hours with multiple cores (`-p`), but doesn't require much RAM.  Meanwhile, `--blast` does require significant RAM as well!
 
+The first command `aligater post --blast` should be considered mandatory, it is *not* recommended to skip this step.
+```bash
+
+```
 
 ###Reclassification###
 
