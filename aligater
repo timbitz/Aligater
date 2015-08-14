@@ -72,12 +72,18 @@ if(!defined($subCommand) or
   $printUsage = 1;
 }
 
-if(($helpFlag or $printUsage) and $subCommand !~ /align|detect|post|reclass|stats|table/) {
+if(($helpFlag or $printUsage) and (!defined($subCommand) or $subCommand !~ /align|detect|post|reclass|stats|table/)) {
   if(defined($subCommand) and $subCommand eq "align") {
     die "Usage: $0 align [options] -x <bowtie2_db> input.[fq|fa][.gz] > output.[sam|bam]
     ";
   } else {
-    die "Usage: $0 [sub-command] 
+    die "Usage: aligater [sub-command] [-h]
+         - align   : align short-reads to transcriptome
+         - detect  : detect chimeric reads by recursive chaining of transcriptome SAM blocks
+         - post    : post-process LIG format files with BLAST or RACTIP
+         - reclass : create 2D k-mer db and reclassify chimeras using heirarchical type
+         - stats   : compare crosslinked to mock-treated samples using multinomial statistics
+         - table   : compile interaction results into tabular format 
     ";
   }
 }
