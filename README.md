@@ -62,7 +62,6 @@ It is also possible to use a different build or species, but automation of this 
 Overview
 --------
 
---
 <div align=center><img src="/lib/overview.png" width="500px" /></div>
 --
 
