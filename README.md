@@ -75,7 +75,7 @@ Usage
 
 The aligater executable is a wrapper for a set of tools that are meant to work
 as input/output for one another, often compatible with piping one into the next.
-```bash
+```
 $ aligater -h
      aligater [sub-command] [-h]
          - align   : align short-reads to transcriptome
