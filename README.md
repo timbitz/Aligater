@@ -75,7 +75,7 @@ $ aligater -h
          - align   : align short-reads to transcriptome
          - detect  : detect chimeric reads by recursive chaining of transcriptome SAM blocks
          - post    : post-process LIG format files with BLAST or RACTIP
-         - reclass : create db and reclassify chimeras from db using heirarchical type sequence
+         - reclass : create 2D k-mer db and reclassify chimeras using heirarchical type
          - stats   : compare crosslinked to mock-treated samples using multinomial statistics
          - table   : compile interaction results into tabular format
 ```
@@ -118,7 +118,9 @@ There are a few parts to the post processing step, a number of filtering flags, 
 aligater post [filtering_flags] [--blast] [--ractip] 
 ```
 
-It is recommended that these commands be run separately, to effectively make use system resources. For example, `--ractip` takes several hours with multiple cores (`-p`), but doesn't require much RAM.  Meanwhile, `--blast` does require significant RAM as well!
+It is recommended that these commands be run separately, to effectively make use system resources. 
+For example, `--ractip` takes several hours with substantial CPU on multiple cores (`-p`), but doesn't require much RAM.  
+Meanwhile, `--blast` is very CPU heavy and requires significant RAM as well!
 
 The first command `aligater post --blast` should be considered mandatory, it is *not* recommended to skip this step.
 This step requires proper installation of `blastn` and the blast databases to the environmental variable `BLASTDB`.
@@ -134,14 +136,12 @@ $ aligater post [--tmp (def: /tmp/aligater)] [-p] --loose --blast < lig/$prefast
 Edit the `tmp` directory to hit and number of threads `-p` to use as necessary.
 
 
-
-
 ###Reclassification###
 
 This is a two part step, you need to first create a junction library `.jlz` from the
 annotations of all samples and replicates that you plan to compare:
 ```bash
-$ aligater reclass --uniq --save database.jlz < lig/*.lig
+$ aligater reclass --uniq --save database.jlz < lig/*blast.filtered.lig
 ```
 
 and then the actual reclassification step on each `lig` file:
