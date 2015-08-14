@@ -3,7 +3,7 @@ a<em>ligate</em>r
 
 Software suite for detection of chimeric or circular RNAs from high-throughput sequencing data.
 Designed for use on LIGR-seq data (_citation coming.._), but can be applied to regular RNAseq for
-detection of circular RNAs as well (_experimental_).  The method summarizes as follows:
+detection of circular RNAs as well (_experimental_).
 
 Table of Contents
 -----------------
@@ -63,7 +63,6 @@ Overview
 --------
 
 <div align=center><img src="/lib/overview.png" width="500px" /></div>
---
 
 
 Usage
