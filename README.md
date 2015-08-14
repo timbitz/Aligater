@@ -5,6 +5,8 @@ Software suite for detection of chimeric or circular RNAs from high-throughput s
 Designed for use on LIGR-seq data (citation coming..), but can be applied to regular RNAseq for
 detection of circular RNAs as well (experimental).
 
+![Overview Aligater](/lib/overview.png)
+
 Table of Contents
 -----------------
 
