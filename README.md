@@ -5,15 +5,12 @@ Software suite for detection of chimeric or circular RNAs from high-throughput s
 Designed for use on LIGR-seq data (_citation coming.._), but can be applied to regular RNAseq for
 detection of circular RNAs as well (_experimental_).  The method summarizes as follows:
 
---
-<div align=center><img src="/lib/overview.png" width="500px" /></div>
---
-
 Table of Contents
 -----------------
 
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Overview](#overview)
 - [Usage](#usage)
 - [File Formats](#file-formats)
 
@@ -61,6 +58,13 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 The current database is for hg19, you can download it here: [hg19 transcriptome](http://google.com)
 
 It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  
+
+Overview
+--------
+
+--
+<div align=center><img src="/lib/overview.png" width="500px" /></div>
+--
 
 
 Usage
