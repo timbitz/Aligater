@@ -71,7 +71,13 @@ The aligater executable is a wrapper for a set of tools that are meant to work
 as input/output for one another, often compatible with piping one into the next.
 ```bash
 $ aligater -h
-
+     aligater [sub-command] [-h]
+         - align   : align short-reads to transcriptome
+         - detect  : detect chimeric reads by recursive chaining of transcriptome SAM blocks
+         - post    : post-process LIG format files with BLAST or RACTIP
+         - reclass : create db and reclassify chimeras from db using heirarchical type sequence
+         - stats   : compare crosslinked to mock-treated samples using multinomial statistics
+         - table   : compile interaction results into tabular format
 ```
 
 ###Alignment and Detection###
