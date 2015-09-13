@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #=
-   Author: Tim Sterne-Weiler, 6/23/2015
+   Author: Tim Sterne-Weiler, 9/13/2015
    e-mail: tim.sterne.weiler@utoronto.ca
 =#
 
@@ -20,8 +20,14 @@ end
 
 ###################################################################
 function read_lig_parse_reg( io )
+   const geneind = 25
+   const posind = 17
    for l::ASCIIString in eachline( io )
       s = split(l, '\t')
+      (g1,g2) = split( s[geneind], ':' )
+      g1 == g2 || continue
+      (pos1,pos2) = split( s[posind], ',' )
+      
    end
 end
 
