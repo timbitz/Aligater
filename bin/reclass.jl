@@ -53,7 +53,7 @@ end
 
 include("dictext.jl") #--> savedict, loaddict, dush!, dinc!, dnorm!
 
-function isUniqueJunc!{K <: String}( used::Dict{K,Bool}, seq, genes, dbar::Dict{K,K}, name )
+function isUniqueJunc!{K <: AbstractString}( used::Dict{K,Bool}, seq, genes, dbar::Dict{K,K}, name )
   barcode = get(dbar, name, "")
   m = match(r"([AGCTUN]{5}_[AGCTUN]{5})", seq)
   cap = m.captures[1]

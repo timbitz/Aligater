@@ -117,7 +117,7 @@ end #--> Float
    and a background probability set and derives a probability
    set for those pairs and computes binomial p-values for the
    foreground counts =#
-function calculateBinomialStats{T <: Tuple, S <: String}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64})
+function calculateBinomialStats{T <: Tuple, S <: AbstractString}(forecnt::Dict{T,Float64}, backprob::Dict{S,Float64})
   const n = sum( collect( values(forecnt) ) )
   const den = sumSamePairs(backprob)
   const pseudo = pseudoCnt(backprob)
@@ -329,7 +329,7 @@ function printStats( io, statarr::Array, rpmarr::Array; normarr=[1,1], alpha=1.0
     kstwo  = collect( keys( bHsh ) )
     both = union( ksone, kstwo )
     # function to check existance of and reduce rpm values.
-    function apply_rpmfunc{K <: String,V <: Float64}( hsh1::Dict{K,V}, hsh2::Dict{K,V}, key1::K, key2::K, func::Function)
+    function apply_rpmfunc{K <: AbstractString,V <: Float64}( hsh1::Dict{K,V}, hsh2::Dict{K,V}, key1::K, key2::K, func::Function)
       begin
         val1 = get(hsh1, key1, zero(V))
         val2 = get(hsh2, key2, zero(V))

@@ -19,6 +19,13 @@ end
 
 
 ###################################################################
+function splitgb( coord )
+  spl = split( coord, ':' )
+  @assert( length(spl) > 1 )
+  nums = map( x->parse(Int, x), split( spl[2], '-' ) )
+  length(spl) >= 3 ? (spl[1], nums..., spl[3]) : (spl[1], nums...)
+end
+
 function read_lig_parse_reg( io )
    const geneind = 25
    const posind = 17
@@ -26,7 +33,7 @@ function read_lig_parse_reg( io )
       s = split(l, '\t')
       (g1,g2) = split( s[geneind], ':' )
       g1 == g2 || continue
-      (pos1,pos2) = split( s[posind], ',' )
+      (c1,c2) = map( x->splitgb(x), split( s[posind], ',' ) )
       
    end
 end

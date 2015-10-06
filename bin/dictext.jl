@@ -7,7 +7,7 @@
 using GZip
 
 # slow performance of HDF5 has promted [savedict, loaddict]:
-function savedict{K,V}( file::String, dict::Dict{K,V} )
+function savedict{K,V}( file::AbstractString, dict::Dict{K,V} )
   GZip.open(file, "w") do fh
     println(fh, "@Dict{" * string(K) * "," * string(V) * "}:" * string(length(dict)))
     for k in keys(dict)
@@ -16,10 +16,10 @@ function savedict{K,V}( file::String, dict::Dict{K,V} )
   end
 end #--> nothing
 
-function loaddict(file::String)
+function loaddict(file::AbstractString)
    myconvert(x::Type{Char}, y) = string(y)[1]
-   myconvert{T <: String}(x::Type{T}, y) = convert(T, string(y))
-   myconvert{T <: Number, S <: String}(x::Type{T}, y::S) = parse(T, y)
+   myconvert{T <: AbstractString}(x::Type{T}, y) = convert(T, string(y))
+   myconvert{T <: Number, S <: AbstractString}(x::Type{T}, y::S) = parse(T, y)
    myconvert(x, y) = convert(x, y)
    #hint = parse(chomp(readall(pipe(`zcat $file`, `wc -l`)))) # --deprecated 6/10/15 tsw
    dict = nothing
