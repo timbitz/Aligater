@@ -34,7 +34,7 @@ function read_lig_parse_reg( io )
       (g1,g2) = split( s[geneind], ':' )
       g1 == g2 || continue
       (c1,c2) = map( x->splitgb(x), split( s[posind], ',' ) )
-      
+      # unfinished as of 10/2015
    end
 end
 
