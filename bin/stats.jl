@@ -166,7 +166,7 @@ function loadInteractionFile(io::IOStream, gInd::Int, cntInd::Int, col, reg)
 end #--> Dict{Tuple,Float64}
 
 # this does io and creates a cset structure of type Dict
-function loadBackgroundFile(io::IOStream, ind::Int; keyType=String, valType=Float64)
+function loadBackgroundFile(io::IOStream, ind::Int; keyType=AbstractString, valType=Float64)
   cset = Dict{keyType,valType}()
   sizehint!(cset, 30000) # approx number of genes
   for i::ASCIIString in eachline(io)
