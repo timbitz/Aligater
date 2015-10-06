@@ -77,7 +77,7 @@ end #--> Tuple{Integer, Regex}
 
 # if the pairs --TODODOC
 function load_interactionfile(io, gInd::Int, cntInd::Int, delim, col, reg; ctype=Float64, spltflag=false)
-  cset = Dict{String,Dict{String,ctype}}()
+  cset = Dict{AbstractString,Dict{AbstractString,ctype}}()
   #sizehint!(cset, 100)
   sum = zero(ctype)
   for l in eachline( io )
@@ -95,7 +95,7 @@ function load_interactionfile(io, gInd::Int, cntInd::Int, delim, col, reg; ctype
  
     cnum = parse( s[cntInd], raise=false )
     if !haskey(cset, k1)
-      cset[k1] = Dict{String,ctype}()
+      cset[k1] = Dict{AbstractString,ctype}()
     end
     indict = cset[k1]
     toinc = isa(cnum, Number) ? convert(ctype, cnum) : one(ctype)
