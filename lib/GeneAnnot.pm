@@ -241,6 +241,48 @@ sub toGenomeCoord {
   }
 }
 
+sub toTranscriptCoord {
+  my($self, $tranId, $genomeCoord) = @_;
+  my $geneId = $self->{"ISO_PARENT"}->{$tranId};
+#  print STDERR "$geneId\n";
+  return unless defined $geneId;
+  my $strand = $self->{"GENE_CHILD"}->{$geneId}->{$tranId};
+  return unless defined $strand;
+  my(@exons) = sort {
+    ($strand eq "+") ? coorMidpoint($a) <=> coorMidpoint($b) : coorMidpoint($b) <=> coorMidpoint($a)
+                    } keys %{$self->{"ISO_EXON"}->{$tranId}};
+  #return unless scalar(@exons) > 0;
+  my $cur = 0; # running total
+  my $ret;
+  my($gCh, $gPos) = parseRegion($genomeCoord);
+#  print STDERR "$gCh\t$gPos\n";
+  foreach my $ex (@exons) {
+    my($c, $s, $e) = parseRegion($ex);
+    $e += 1;
+    return unless $c eq $gCh; # non-matching chroms
+    # check if coord is within this exon
+    if( ($e >= $gPos and $gPos >= $s) ) {
+ #     print STDERR "YES";
+#    if(($e - $s) + $cur > $coord) {
+      if($strand eq "+") {
+        $ret = $cur + ($gPos - $s);
+      } else { #minus strand, trace backwards
+        $ret = $cur + ($e - $gPos);
+      }
+#      print STDERR "returning $ret\n";
+      return $ret;  # HERE
+    } else {
+      $cur += ($e - $s);
+    }
+  }
+  return $ret;
+}
+
+sub allChildTranscripts {
+  my($self, $geneId) = @_;
+  return(keys %{$self->{"GENE_CHILD"}->{$geneId}}); 
+}
+
 #
 # this function sets $self->{"CHR_BIN_GENE"}->{chr}->{bin}->{gene_alias}->[coord]
 #
@@ -270,6 +312,7 @@ sub initGeneLookup {
 }
 
 # this function assumes initGeneLookup has been run already.
+# it returns the overlap between some coordinate and some gene alias
 sub coorAliasLookup {
   my($self, $coord, $alias) = @_;
   my($chr, $pos) = parseRegion($coord);

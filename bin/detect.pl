@@ -322,6 +322,7 @@ sub getHybridFormat {
     my $rmskPos = "NA";
 
     # set genomic position if possible
+    $refPos += $length - 2 if $i == 0; # if first alignment then ligation is at end of alignment
     my $coord = $GENEANNO->toGenomeCoord($ensTran, $refPos) if defined($GENEANNO);
     my($genomeChr, $genomePos, $genomeRan) = parseRegion($coord);
     my $genomeCoord = "NA";

@@ -45,6 +45,7 @@ function read_lig_parse_reg( io; biot=nothing )
    const biotind = 24
    const seqind = 11
    const posind = 17
+   const refind = 14
 
    expfile = []
    bygenesym = Dict{ASCIIString,Int}()
@@ -63,14 +64,17 @@ function read_lig_parse_reg( io; biot=nothing )
       ci1,ci2 = c1[2],c2[2]
       c1[1] == c2[1] || continue
       @assert( c1[end] == c2[end], "$(c1[end]) does not equal $(c2[end]) !!" )
-      s1,s2 = split( s[seqind], '_' )
-      if c1[end] == "+" # if positive
-         ci1 += length(s1)
+      s1,s2 = replace(s[seqind], r"[a-z]", "") |> x->split( x, '_' )
+      #println("$(s[refind]) is the ref ind")
+      r1,r2 = split( s[refind], ',' ) |> x->tuple(map(y->parse(Int,y), x)...)
+#=      if c1[end] == "+" # if positive
+         ci1 += length(s1) - 1
       else # negative
-         ci2 -= length(s1)
-      end
+         ci1 -= length(s1) + 1
+      end=#
       first,second = tuple(sort([ci1,ci2])...)
-      push!(expfile, (c1[1], first, second, g1, 0, c1[end]) )
+      dist = abs( r1 - r2 )
+      push!(expfile, (c1[1], first, second, g1, dist, c1[end]) )
       dinc!( bygenesym, ASCIIString(g1) )
       genesum += 1
    end
@@ -124,7 +128,7 @@ function main()
 
    reg,genecnt,genesum = read_lig_parse_reg( STDIN, biot=pargs["biot"] )
    if pargs["bed"]
-      print_bed( STDOUT, reg )
+      #print_bed( STDOUT, reg )
    end
 
    if pargs["background"] != nothing
