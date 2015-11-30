@@ -4,7 +4,11 @@
    e-mail: tim.sterne.weiler@utoronto.ca
 =#
 
+include("dictext.jl")
+
 using ArgParse
+using DataFrames
+using Distributions
 
 function parse_cmd()
   s = ArgParseSettings()
@@ -16,6 +20,12 @@ function parse_cmd()
     "--biot"
       help = "only output this specific biotype (default off)"
       arg_type = ASCIIString
+    "--background"
+      help = "gene expression levels background file {geneid first column, then data replicates cols}"
+      arg_type = ASCIIString
+    "--backheader"
+      help = "is there a header in the background file? (default true)"
+      action = :store_false
   end
   return parse_args(s)
 end
@@ -29,11 +39,17 @@ function splitgb( coord )
   length(spl) >= 3 ? (spl[1], nums..., spl[3]) : (spl[1], nums...)
 end
 
+
 function read_lig_parse_reg( io; biot=nothing )
    const geneind = 25
    const biotind = 24
    const seqind = 11
    const posind = 17
+
+   expfile = []
+   bygenesym = Dict{ASCIIString,Int}()
+   genesum = 0
+
    for l::ASCIIString in eachline( io )
       l[1] == 'S' || continue
       s = split(strip(l), '\t')
@@ -54,8 +70,11 @@ function read_lig_parse_reg( io; biot=nothing )
          ci2 -= length(s1)
       end
       first,second = tuple(sort([ci1,ci2])...)
-      println("$(c1[1])\t$first\t$second\t$g1\t0\t$(c1[end])")
+      push!(expfile, (c1[1], first, second, g1, 0, c1[end]) )
+      dinc!( bygenesym, ASCIIString(g1) )
+      genesum += 1
    end
+   expfile, bygenesym, genesum
 end
 
 function print_bed( io, reg )
@@ -65,13 +84,66 @@ function print_bed( io, reg )
    end
 end
 
+function print_pvals( io, pvals::Dict{ASCIIString,Float64} )
+   for k in keys(pvals)
+      println( io, "$k\t$(pvals[k])" )
+   end
+end
+
+function load_gene_exp( filename; header=true, ind=2 )
+   df = readtable( filename, separator='\t', header=header)
+   num_inds = get_numeric_cols( df )
+   divsum( arr ) = arr / sum(arr)
+   for i in num_inds
+      df[i] = divsum( df[i] )
+   end
+   da = Vector{Float64}()
+   for r in eachrow( df[n] ) 
+      push!(da, mean(convert(Array, r)))
+   end
+   df[:mean] = divsum( da )
+   geneDic = Dict{ASCIIString,Float64}()
+   for i in 1:nrow(df)
+      geneDic[ df[i,ind] ] = df[i,:mean]
+   end
+   geneDic
+end
+
+function get_numeric_cols( df::DataFrame )
+   num_inds = Int[]
+   for i in 1:length(df)
+      if typeof(df[i][1]) <: Real
+         push!(num_inds, i)
+      end
+   end
+   num_inds
+end
+
 function main()
    pargs = parse_cmd()
 
-   reg = read_lig_parse_reg( STDIN, biot=pargs["biot"] )
+   reg,genecnt,genesum = read_lig_parse_reg( STDIN, biot=pargs["biot"] )
    if pargs["bed"]
       print_bed( STDOUT, reg )
    end
+
+   if pargs["background"] != nothing
+      back = load_gene_exp( pargs["background"], header=pargs["backheader"] )
+      pvals = Dict{ASCIIString,Float64}()
+      for k in keys(genecnt)
+         haskey(back, k) || continue
+         bin = Binomial(Int(genesum), back[k])
+         pvals[ k ] = ccdf( bin, genecnt[k]-1 )
+      end
+      n = length(keys(pvals))
+      for k in keys(pvals)
+         pvals[k] = min( pvals[k] * n, 1 )
+      end
+      open( "n_vs_ge-back.pval", "r" ) do fh
+         print_pvals( fh, pvals )
+      end
+   end   
+
 end
 
 main()
