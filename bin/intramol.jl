@@ -34,6 +34,7 @@ function read_lig_parse_reg( io; biot=nothing )
    const biotind = 24
    const seqind = 11
    const posind = 17
+   const refind = 14
    for l::ASCIIString in eachline( io )
       l[1] == 'S' || continue
       s = split(strip(l), '\t')
@@ -47,14 +48,17 @@ function read_lig_parse_reg( io; biot=nothing )
       ci1,ci2 = c1[2],c2[2]
       c1[1] == c2[1] || continue
       @assert( c1[end] == c2[end], "$(c1[end]) does not equal $(c2[end]) !!" )
-      s1,s2 = split( s[seqind], '_' )
-      if c1[end] == "+" # if positive
-         ci1 += length(s1)
+      s1,s2 = replace(s[seqind], r"[a-z]", "") |> x->split( x, '_' )
+      #println("$(s[refind]) is the ref ind")
+      r1,r2 = split( s[refind], ',' ) |> x->tuple(map(y->parse(Int,y), x)...)
+#=      if c1[end] == "+" # if positive
+         ci1 += length(s1) - 1
       else # negative
-         ci2 -= length(s1)
-      end
+         ci1 -= length(s1) + 1
+      end=#
       first,second = tuple(sort([ci1,ci2])...)
-      println("$(c1[1])\t$first\t$second\t$g1\t0\t$(c1[end])")
+      dist = abs( r1 - r2 )
+      println("$(c1[1])\t$first\t$second\t$g1\t$dist\t$(c1[end])\t$s1\t$s2")
    end
 end
 
@@ -70,7 +74,7 @@ function main()
 
    reg = read_lig_parse_reg( STDIN, biot=pargs["biot"] )
    if pargs["bed"]
-      print_bed( STDOUT, reg )
+      #print_bed( STDOUT, reg )
    end
 end
 
