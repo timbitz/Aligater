@@ -94,15 +94,18 @@ function print_pvals( io, pvals::Dict{ASCIIString,Float64} )
    end
 end
 
-function load_gene_exp( filename; header=true, ind=2 )
+function load_gene_exp( filename, keyset; header=true, ind=2 )
    df = readtable( filename, separator='\t', header=header)
+   rename!( df, Dict{Symbol,Symbol}( names(df)[ind] => :GENESYM ) )
+   nf = DataFrame( GENESYM=keyset )
+   df = join( df, nf, on = :GENESYM )
    num_inds = get_numeric_cols( df )
    divsum( arr ) = arr / sum(arr)
    for i in num_inds
       df[i] = divsum( df[i] )
    end
    da = Vector{Float64}()
-   for r in eachrow( df[n] ) 
+   for r in eachrow( df[num_inds] ) 
       push!(da, mean(convert(Array, r)))
    end
    df[:mean] = divsum( da )
@@ -132,7 +135,7 @@ function main()
    end
 
    if pargs["background"] != nothing
-      back = load_gene_exp( pargs["background"], header=pargs["backheader"] )
+      back = load_gene_exp( pargs["background"], collect(keys(genecnt)), header=pargs["backheader"] )
       pvals = Dict{ASCIIString,Float64}()
       for k in keys(genecnt)
          haskey(back, k) || continue
@@ -143,7 +146,7 @@ function main()
       for k in keys(pvals)
          pvals[k] = min( pvals[k] * n, 1 )
       end
-      open( "n_vs_ge-back.pval", "r" ) do fh
+      open( "n_vs_ge-back.pval", "w+" ) do fh
          print_pvals( fh, pvals )
       end
    end   
