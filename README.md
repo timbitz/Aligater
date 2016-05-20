@@ -2,8 +2,7 @@ a<em>ligate</em>r
 =================
 
 Software suite for detection of chimeric or circular RNAs from high-throughput sequencing data.
-Designed for use on LIGR-seq data, but can be applied to other RNA-RNA interaction sets such as those
-produced from CLASH.
+Designed for use on LIGR-seq data, but can be applied to other RNA-RNA interaction screens.
 
 Table of Contents
 -----------------
@@ -17,7 +16,7 @@ Table of Contents
 Requirements
 ------------
 
-_julia 0.4_
+_julia v0.4+_
  * ArgParse
  * Match
  * Distributions
@@ -46,7 +45,7 @@ Installation
 
 ###System###
 
-If you are new to `julia`, the latest 0.4-dev binaries can be downloaded from the nightly builds [64-bit](https://status.julialang.org/download/linux-x86_64) or [32-bit](https://status.julialang.org/download/linux-i686).  The packages can then be installed manually by opening the `julia` REPL:
+Install most recent [julia release here](http://julialang.org/downloads/), which must be >= v0.4.  If you are new to julia, or installing programs via command line, there is a [helpful guide here](https://en.wikibooks.org/wiki/Introducing_Julia/Getting_started).  The packages can then be installed manually by opening the `julia` REPL:
 ```julia
   pkgs = ("ArgParse", "Match", "Distributions", "GZip")
   map( Pkg.add, pkgs )
