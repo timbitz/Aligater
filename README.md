@@ -200,4 +200,26 @@ For `lig` format you can use: `--vs 18:f,24:p,21:f,22:d,23:d` which should summa
 
 Additionally there is a `--filt` optional flag that can be used to specify a single column and regex pattern for filtering purposes.  For example you may want to filter for only intermolecular interactions using `--filt 1:I`.
 
+###File Formats###
 
+The `aligater detect` step outputs a basic .lig (tab delimited) format file, and the `aligater post` outputs an extended version of the .lig fileformat.  The standard format is:
+
+| Column | Example | Regex | Description | 
+| ------ | ------- | ----- | ----------- |
+| 1 | I | [IPS] | Single letter code classification: I=Intermolecular, P=Putatively Paralogous, S=Intramolecular |
+| 2 | A:B | [A-Z\:]+ | Chimeric Read Structure: A,B,C refer to molecules, : denotes a ligation.  A:A = intramolecular ligation, A:B = intermolecular ligation, A:B:A = intermolecular ligation from A to B and then from B back to A |
+| 3 | 1:3 | [\d\:]+ | Local alignments (from SAM) that have been chained to make up the chimera |
+| 4 | RNU4-1:RNU6-1251P | \S+ | Gene symbols of transcripts aligned to chimeric read |
+| 5 | ENSG00000200795.1:ENSG00000201372.1 | \S+ | Gene ids of chimeric segments |
+| 6 | ENST00000363925.1:ENST00000364502.1 | \S+ | Transcript ids of chimeric segments |
+| 7 | snRNA:snRNA | \S+ | Biotypes of transcripts in chimeric segments |
+| 8 | U4_snRNA:U6_snRNA | \S+ or NA | If alignment overlaps RepeatMasker annotation, RepeatNames or NA are given in A:B order |
+| 9 | snRNA:snRNA | \S+ or NA | If alignment overlaps RepeatMasker annotation, then RepeatClass or NA is given in A:B order |
+| 10 | 68c3777d9e14bf33 | \S+ or [a-f1-9]+ | Readname or md5 hash of readname |
+| 11 | ACTGGCAATTTAAAATTGGAA+ | [ATGCN]+ | Read Sequence, _ indicates ligation site |
+| 12 | 124 | \d+ | Alignment Score |
+| 13 | 1,30>30>17 | [\d\,\>\(\)]+ | Chimera uniqueness, deprecated |
+| 14 | 74,26 | [\d,]+ | Alignment positions in transcripts |
+| 15 | 74,27 | [\d,]+ or NA,NA | RepeatMask offset positions |
+| 16 | 55,41 | [\d,]+ | Alignment lengths |
+| 17 | chr12:120730966:-,chr20:42101679:+ | POS,POS where POS=\S+\:\d+\:[+-] | Genome start position of alignment segment |
