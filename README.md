@@ -25,6 +25,7 @@ _julia v0.4+_
 _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
+ * DBI
 
 _external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
@@ -55,9 +56,9 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 ###Database Setup###
 
-The current database is for hg19, you can download it here: [hg19 transcriptome](http://google.com)
+The current database is for hg19, you can download it here: [hg19 transcriptome](http://hgwdev.sdsc.edu/~timsw/GRCh37.v19.bt2.tar.gz)
 
-It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  
+It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  In the meantime you should be able to reverse engineer the file formats in the hg19 version.
 
 Overview
 --------
@@ -108,6 +109,10 @@ The next step is detection, which can be piped from the first: `aligater align |
 ```bash
 $ detectparam='--gtf [annoFile.gtf(.gz)] --gfam [gene_fam.txt(.gz)] --rmsk [maskerFile.bed(.gz)]'
 $ aligater detect $detectparam < sam/$prefastq.sam > lig/$prefastq.lig
+```
+for example with the default transcriptome you should have something like:
+```bash
+$ detectparam='--gtf db/GRCh37.v19.gtf.gz --gfam db/hg.gene_fam.txt.gz --rmsk db/GRCh37.repeatMasker.slim.bed.gz'
 ```
 will print a [lig formatted](#file-formats) file to STDOUT.
 
