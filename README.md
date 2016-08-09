@@ -105,6 +105,12 @@ But feel free to alter other alignment parameters as you see fit for custom purp
 $ aligater align -h
 ```
 
+Example:
+```bash
+$ align_max=50
+$ aligater align -p $cores -k $align_max --bam -x db/GRCh37.v19 $filename > bam/$prefastq.bam
+```
+
 The next step is detection, which can be piped from the first: `aligater align | aligater detect > out.lig`
 ```bash
 $ detectparam='--gtf [annoFile.gtf(.gz)] --gfam [gene_fam.txt(.gz)] --rmsk [maskerFile.bed(.gz)]'
