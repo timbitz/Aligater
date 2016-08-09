@@ -60,6 +60,13 @@ The current database is for hg19, you can download it here: [hg19 transcriptome]
 
 It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  In the meantime you should be able to reverse engineer the file formats in the hg19 version.
 
+```bash
+$ git clone https://github.com/timbitz/Aligater.git
+$ cd Aligater
+$ wget http://hgwdev.sdsc.edu/~timsw/GRCh37.v19.bt2.tar.gz
+$ tar xzvf GRCh37.v19.bt2.tar.gz
+```
+
 Overview
 --------
 
