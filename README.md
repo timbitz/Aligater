@@ -25,6 +25,7 @@ _julia v0.4+_
 _perl v5 Packages_
  * Parallel::ForkManager
  * Getopt::Long
+ * DBI
 
 _external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
@@ -55,9 +56,17 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 ###Database Setup###
 
-The current database is for hg19, you can download it here: [hg19 transcriptome](http://google.com)
+The current database is for hg19, you can download it here: [hg19 transcriptome](http://hgwdev.sdsc.edu/~timsw/GRCh37.v19.bt2.tar.gz)
 
-It is also possible to use a different build or species, but automation of this process is still in development, so you should e-mail me for a synopsis of the required steps.  
+It is also possible to use a different build or species, but automation of this process is still in development.  In the meantime you should be able to reverse engineer the file formats in the hg19 version. Breifly fasta transcriptome headers need to be in the format of `>ENST00001_ENSG00001_GENESYM_BIOTYPE`, for example `>ENST00000432079.1_ENSG00000116747.8_TROVE2_protein-coding`.  If you are having trouble feel free to open an issue or e-mail me.
+
+Set up the default database like:
+```bash
+$ git clone https://github.com/timbitz/Aligater.git
+$ cd Aligater
+$ wget http://hgwdev.sdsc.edu/~timsw/GRCh37.v19.bt2.tar.gz
+$ tar xzvf GRCh37.v19.bt2.tar.gz
+```
 
 Overview
 --------
@@ -104,10 +113,20 @@ But feel free to alter other alignment parameters as you see fit for custom purp
 $ aligater align -h
 ```
 
+Example:
+```bash
+$ align_max=50
+$ aligater align -p $cores -k $align_max --bam -x db/GRCh37.v19 $filename > bam/$prefastq.bam
+```
+
 The next step is detection, which can be piped from the first: `aligater align | aligater detect > out.lig`
 ```bash
 $ detectparam='--gtf [annoFile.gtf(.gz)] --gfam [gene_fam.txt(.gz)] --rmsk [maskerFile.bed(.gz)]'
 $ aligater detect $detectparam < sam/$prefastq.sam > lig/$prefastq.lig
+```
+for example with the default transcriptome you should have something like:
+```bash
+$ detectparam='--gtf db/GRCh37.v19.gtf.gz --gfam db/hg.gene_fam.txt.gz --rmsk db/GRCh37.repeatMasker.slim.bed.gz'
 ```
 will print a [lig formatted](#file-formats) file to STDOUT.
 
