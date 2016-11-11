@@ -46,7 +46,7 @@ Installation
 
 ###System###
 
-Install most recent [julia release here](http://julialang.org/downloads/), which must be >= v0.4.  If you are new to julia, or installing programs via command line, there is a [helpful guide here](https://en.wikibooks.org/wiki/Introducing_Julia/Getting_started).  The packages can then be installed manually by opening the `julia` REPL:
+Install most recent [julia release here](http://julialang.org/downloads/), which must be = v0.4 (v0.5 is not yet supported).  If you are new to julia, or installing programs via command line, there is a [helpful guide here](https://en.wikibooks.org/wiki/Introducing_Julia/Getting_started).  The packages can then be installed manually by opening the `julia` REPL:
 ```julia
   pkgs = ("ArgParse", "Match", "Distributions", "GZip")
   map( Pkg.add, pkgs )
