@@ -16,7 +16,7 @@ Table of Contents
 Requirements
 ------------
 
-_julia v0.4+_
+_julia v0.4_
  * ArgParse
  * Match
  * Distributions
