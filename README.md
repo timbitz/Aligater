@@ -16,7 +16,7 @@ Table of Contents
 Requirements
 ------------
 
-_julia v0.4+_
+_julia v0.4_
  * ArgParse
  * Match
  * Distributions
@@ -46,7 +46,7 @@ Installation
 
 ###System###
 
-Install most recent [julia release here](http://julialang.org/downloads/), which must be >= v0.4.  If you are new to julia, or installing programs via command line, there is a [helpful guide here](https://en.wikibooks.org/wiki/Introducing_Julia/Getting_started).  The packages can then be installed manually by opening the `julia` REPL:
+Install most recent [julia release here](http://julialang.org/downloads/), which must be = v0.4 (v0.5 is not yet supported).  If you are new to julia, or installing programs via command line, there is a [helpful guide here](https://en.wikibooks.org/wiki/Introducing_Julia/Getting_started).  The packages can then be installed manually by opening the `julia` REPL:
 ```julia
   pkgs = ("ArgParse", "Match", "Distributions", "GZip")
   map( Pkg.add, pkgs )
@@ -58,7 +58,7 @@ The `perl` packages can be installed using `cpan -i Parallel::ForkManager`
 
 The current database is for hg19, you can download it here: [hg19 transcriptome](http://hgwdev.sdsc.edu/~timsw/GRCh37.v19.bt2.tar.gz)
 
-It is also possible to use a different build or species, but automation of this process is still in development.  In the meantime you should be able to reverse engineer the file formats in the hg19 version. Breifly fasta transcriptome headers need to be in the format of `>ENST00001_ENSG00001_GENESYM_BIOTYPE`, for example `>ENST00000432079.1_ENSG00000116747.8_TROVE2_protein-coding`.  If you are having trouble feel free to open an issue or e-mail me.
+It is also possible to use a different build or species, but automation of this process is still in development.  In the meantime you should be able to reverse engineer the file formats in the hg19 version. Briefly fasta transcriptome headers need to be in the format of `>ENST00001_ENSG00001_GENESYM_BIOTYPE`, for example `>ENST00000432079.1_ENSG00000116747.8_TROVE2_protein-coding`.  If you are having trouble feel free to open an issue or e-mail me.
 
 Set up the default database like:
 ```bash
