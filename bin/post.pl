@@ -221,7 +221,7 @@ while(my $l = <>) {
   # filter based on ligq
   my($mapqFore, $mapqLeft, $mapqRight) = split(/\>/, $a[$mapqIndex]);
   my $mapqParen = ($mapqLeft =~ /\((\d+)\)/);
-  $mapqLeft =~ s/\(\d+\)//;
+  $mapqLeft =~ s/\(\d+\)|\[\d+\]//g;
   $mapqParen = 0 if($mapqParen eq "");
   $hardFilt++ if $mapqLeft > $mapqIdent;
   $hardFilt++ if $mapqRight < $mapqDiff;
