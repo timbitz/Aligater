@@ -30,7 +30,7 @@ _perl v5 Packages_
 _external software_
  * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml) - short-read alignment
  * blastn - `ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`
- * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/`: nr, human_genomic, other_genomic 
+ * blast databses `ftp://ftp.ncbi.nlm.nih.gov/blast/db/`: nt, human_genomic, other_genomic 
 
 _optional_
  * [RactIP](http://rtips.dna.bio.keio.ac.jp/ractip/) - intermolecular _in silico_ RNA folding
