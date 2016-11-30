@@ -166,7 +166,7 @@ Edit the `tmp` directory to hit and number of threads `-p` to use as necessary.
 This is a two part step, you need to first create a junction library `.jlz` from the
 annotations of all samples and replicates that you plan to compare:
 ```bash
-$ aligater reclass --uniq --save database.jlz < lig/*blast.filtered.lig
+$ cat lig/*blast.filtered.lig | aligater reclass --uniq --save database.jlz
 ```
 
 and then the actual reclassification step on each `lig` file:
