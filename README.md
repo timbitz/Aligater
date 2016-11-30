@@ -210,7 +210,7 @@ $ aligater stats $nameParam $normParam > output.pvl
 
 However there are a number of other optional arguments which can greatly expand the data compiled by `aligater stats` such as the `--vs` option which allows an arbitrary number of variable columns to summarize for each interaction 'col:type,col:type,etc..'.  Each entry consists of a column number (1-based) followed by a `:` and a data type character `[pcfdn]` where each character stands for:
  * `p` : paired column with colon delimited entries for example BIOTYPEA:BIOTYPEB
- * `c` : character containing column to include
+ * `s` : string containing column to include
  * `f` : floating point number within the scope of Float64
  * `d` : integer number within the scope of Int64
  * `n` : some member of the Number abstract type, could be complex
