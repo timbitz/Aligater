@@ -4,9 +4,9 @@ a<em>ligate</em>r
 Software suite for detection of chimeric or circular RNAs from high-throughput sequencing data.
 Designed for use on LIGR-seq data (see citation below), but can be applied to other RNA-RNA interaction screens.
 
-```
+
 Sharma, E.*, Sterne-Weiler, T.*, O’Hanlon D., Blencowe, BJ. (2016) “Global mapping of the human RNA:RNA interactome reveals new functions for non-coding RNAs.” Molecular Cell. 62(4):618-26
-```
+
 
 Table of Contents
 -----------------
