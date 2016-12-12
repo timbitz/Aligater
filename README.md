@@ -5,7 +5,7 @@ Software suite for detection of chimeric or circular RNAs from high-throughput s
 Designed for use on LIGR-seq data (see citation below), but can be applied to other RNA-RNA interaction screens.
 
 
-<em>Sharma, E.*, Sterne-Weiler, T.*, O’Hanlon D., Blencowe, BJ. (2016) “Global mapping of the human RNA:RNA interactome reveals new functions for non-coding RNAs.” Molecular Cell. 62(4):618-26</em>
+<em>Sharma, E.*, Sterne-Weiler, T.*, O’Hanlon D., Blencowe, BJ. (2016) “Global Mapping of Human RNA-RNA Interactions.” Molecular Cell. 62(4):618-26</em>
 
 
 Table of Contents
