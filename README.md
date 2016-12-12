@@ -2,7 +2,11 @@ a<em>ligate</em>r
 =================
 
 Software suite for detection of chimeric or circular RNAs from high-throughput sequencing data.
-Designed for use on LIGR-seq data, but can be applied to other RNA-RNA interaction screens.
+Designed for use on LIGR-seq data (see citation below), but can be applied to other RNA-RNA interaction screens.
+
+```
+Sharma, E.*, Sterne-Weiler, T.*, O’Hanlon D., Blencowe, BJ. (2016) “Global mapping of the human RNA:RNA interactome reveals new functions for non-coding RNAs.” Molecular Cell. 62(4):618-26
+```
 
 Table of Contents
 -----------------
@@ -203,19 +207,21 @@ $ totalMOCKreads=62648851
 $ normParam="--nc $totalAMTreads,$totalMOCKreads"
 ```
 
-This makes up the core mandatory arguments to `aligater stats`:
+This makes up the core arguments to `aligater stats`:
 ```bash
 $ aligater stats $nameParam $normParam > output.pvl
 ```
 
-However there are a number of other optional arguments which can greatly expand the data compiled by `aligater stats` such as the `--vs` option which allows an arbitrary number of variable columns to summarize for each interaction 'col:type,col:type,etc..'.  Each entry consists of a column number (1-based) followed by a `:` and a data type character `[pcfdn]` where each character stands for:
+There are a number of other arguments which greatly expand the data compiled by `aligater stats` such as the `--vs` option which allows an arbitrary number of variable columns to summarize for each interaction 'col:type,col:type,etc..'.  Each entry consists of a column number (1-based) followed by a `:` and a data type character `[pcfdn]` where each character stands for:
  * `p` : paired column with colon delimited entries for example BIOTYPEA:BIOTYPEB
  * `s` : string containing column to include
  * `f` : floating point number within the scope of Float64
  * `d` : integer number within the scope of Int64
  * `n` : some member of the Number abstract type, could be complex
  
-For `lig` format you can use: `--vs 18:f,24:p,21:f,22:d,23:d` which should summarize most of the important columns.
+For default `lig` format you can use: `--vs 18:f,24:p,21:f,22:d,23:d` which should summarize most of the important columns.
+
+NOTE: If you skipped the RactIP folding step in `aligater post --ractip` then you will have a different number of columns than the default expects.  To change command line options for `aligater stats` to be compatible with your input `.lig` files, use `--gi 19` and `--vs 18:p`.
 
 Additionally there is a `--filt` optional flag that can be used to specify a single column and regex pattern for filtering purposes.  For example you may want to filter for only intermolecular interactions using `--filt 1:I`.
 
@@ -242,3 +248,23 @@ The `aligater detect` step outputs a basic .lig (tab delimited) format file, and
 | 15 | 74,27 | [\d,]+ or NA,NA | RepeatMask offset positions |
 | 16 | 55,41 | [\d,]+ | Alignment lengths |
 | 17 | chr12:120730966:-,chr20:42101679:+ | POS,POS where POS=\S+\:\d+\:[+-] | Genome start position of alignment segment |
+
+The `aligater stats` step outputs a `.pvl` file consistent with `Extended Data Table 1` of Sharma E, Sterne-Weiler T, et al. 2016:
+
+```
+Extended Data Table 1
+Gene-ids : Comma delimited HUGO or Repeat family name in lexographical order
+OE[+amt/-amt] : (+AMT/-AMT) / (Expected(+AMT)/Expected(-AMT))
+AMT/Mock : (+AMT/-AMT)
+Exp[AMT/Mock] : Expected(+AMT)/Expected(-AMT)
+AMTReads : Number of reads in the +AMT sample + 1 pseudo count
+OE-amt : Observed / Expected for +AMT sample (see Methods)
+MockReads : Number of reads in the -AMT sample + 1 pseudo count
+OE-mock : Observed / Expected for -AMT sample (see Methods)
+AMT+ pval : Binomial p-value for significance in the +AMT sample
+Mock pval : Binomial p-value for significance in the -AMT sample
+AMT RPM : The transcript's expression in Reads per Million from -ligase sample
+Mock RPM : The transcript's expression in Reads per Million from -ligase sample
+Transcript Biotypes : Gene biotypes from GENCODE annotations
+... any other summary line from --vs string
+```
